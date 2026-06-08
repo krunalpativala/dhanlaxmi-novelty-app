@@ -1,17 +1,20 @@
-# d1
+# dhanlaxmi-novelty-app
 
-A new Flutter project.
+Flutter wholesale order app with Firebase.
 
-## Getting Started
+## Local setup
 
-This project is a starting point for a Flutter application.
+This repository does not include Firebase config files, signing keys, APKs, logs,
+or local machine files.
 
-A few resources to get you started if this is your first Flutter project:
+Before running/building locally, generate or restore:
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+- `android/app/google-services.json`
+- `lib/firebase_options.dart`
+- `android/key.properties` and the release keystore, only for release builds
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+For the price visibility password, pass a build-time value:
+
+```sh
+flutter run --dart-define=PRICE_VISIBILITY_PASSWORD=your-password
+```
