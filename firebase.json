@@ -1,0 +1,42 @@
+{
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+          "default": {
+            "projectId": "dhanlaxmi-app-4a7ea",
+          "appId": "1:246397326949:android:8399642a9d2acb8745d88c",
+            "fileOutput": "android/app/google-services.json"
+          }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "dhanlaxmi-app-4a7ea",
+          "configurations": {
+            "android": "1:246397326949:android:8399642a9d2acb8745d88c",
+            "web": "1:246397326949:web:f2ebd64fd5319b7145d88c"
+          }
+        }
+      }
+    }
+  }
+}

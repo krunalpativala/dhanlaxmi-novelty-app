@@ -1,0 +1,69 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && (
+          request.auth.token.email in ['krunalpativala@gmail.com']
+          || (
+            exists(/databases/$(database)/documents/users/$(request.auth.uid))
+            && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+          )
+        );
+    }
+
+    match /users/{userId} {
+      allow create: if isOwner(userId)
+        && request.resource.data.role == 'pending';
+      allow read: if isOwner(userId) || isAdmin();
+      allow update: if isAdmin()
+        || (isOwner(userId)
+          && request.resource.data.role == resource.data.role);
+      allow delete: if isAdmin();
+    }
+
+    match /carts/{userId} {
+      allow read, write, delete: if isOwner(userId);
+    }
+
+    match /products/{productId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /categories/{categoryId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /orders/{orderId} {
+      allow create: if signedIn()
+        && request.resource.data.retailerUid == request.auth.uid
+        && request.resource.data.status == 'new';
+
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.retailerUid == request.auth.uid);
+
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).changedKeys()
+          .hasOnly(['status', 'statusUpdatedAt', 'statusUpdatedBy'])
+        && request.resource.data.status in [
+          'new',
+          'confirmed',
+          'packed',
+          'delivered'
+        ];
+
+      allow delete: if isAdmin();
+    }
+  }
+}
