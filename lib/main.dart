@@ -13,10 +13,238 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'firebase_options.dart';
 
+enum AppLanguage { english, gujarati }
+
+extension AppLanguageDisplay on AppLanguage {
+  String get displayName => this == AppLanguage.english ? 'English' : 'ગુજરાતી';
+}
+
+final ValueNotifier<AppLanguage> languageNotifier =
+    ValueNotifier<AppLanguage>(AppLanguage.english);
+
+class AppLocalizations {
+  static const Map<AppLanguage, Map<String, String>> _translations = {
+    AppLanguage.english: {
+      'orderSuccess': 'Order submitted successfully!',
+      'mustLoginFirst': 'Please log in before submitting an order.',
+      'shopNamePhoneRequired': 'Shop name and mobile number are required.',
+      'firebaseOrderPermission':
+          'Grant the retailer permission to create orders in Firestore rules.',
+      'orderSubmitFailed': 'Order submission failed. Please try again.',
+      'error': 'Error: ',
+      'selectLanguage': 'Select language',
+      'languagePrompt': 'Please choose a language',
+      'english': 'English',
+      'gujarati': 'ગુજરાતી',
+      'logout': 'Logout',
+      'notifications': 'Notifications',
+      'cart': 'Cart',
+      'showPrices': 'Show Prices',
+      'hidePrices': 'Hide Prices',
+      'catalog': 'Catalog',
+      'orders': 'Orders',
+      'account': 'Account',
+      'wholesaleOrderApp': 'Wholesale order app',
+      'retailerAccount': 'Retailer account',
+      'wholesalerOrdersInfoTitle': 'How wholesaler will see orders',
+      'wholesalerOrdersInfoLine1':
+          'Every submitted order saves in Firestore collection: orders',
+      'wholesalerOrdersInfoLine2':
+          'Each order has shopName, phone, note, status, quantity and items.',
+      'wholesalerOrdersInfoLine3':
+          'Wholesaler can open Firebase Console and review new orders.',
+      'save': 'Save',
+      'noCategories': 'No categories',
+      'addCategoryHint':
+          'Add a category so the catalog can update dynamically from products.',
+      'registrationSent':
+          'Registration request sent. You can log in after admin approval.',
+      'emailAlreadyInUse': 'An account already exists with this email.',
+      'emailRequired': 'Email is required.',
+      'invalidEmail': 'Please enter a valid email address.',
+      'emailPasswordIncorrect': 'Email or password is incorrect.',
+      'weakPassword': 'Password must be at least 6 characters.',
+      'enableEmailPasswordSignIn':
+          'Enable Email/Password sign-in in Firebase Authentication.',
+      'networkError': 'Check your internet connection and try again.',
+      'createAccountInfo':
+          'Create an account to book wholesale orders.',
+      'loginInfo': 'Log in to place wholesale orders.',
+      'passwordMismatch': 'Passwords do not match.',
+      'cartEmptyTitle': 'Cart is empty',
+      'cartEmptyMessage': 'Add items to the cart from the catalog.',
+      'cartItems': 'Cart items',
+      'retailerDetails': 'Retailer details',
+      'shopNameLabel': 'Shop name',
+      'phoneLabel': 'Phone / WhatsApp number',
+      'orderNoteLabel': 'Order note',
+      'submitOrder': 'Submit order',
+      'submittingOrder': 'Submitting order...',
+      'loginRequired': 'Login required',
+      'loginToViewOrders': 'Log in to view your orders.',
+      'ordersLoadFailed': 'Orders failed to load',
+      'ordersLoadHelp':
+          'Check Firestore rules/index. Orders appear in Firestore after submission.',
+      'firstOrderPrompt': 'Place your first wholesale order from the cart.',
+      'orderStatusUpdated': 'Order status set to {status}.',
+      'statusUpdateFailed': 'Status update failed. Please try again.',
+      'categoryReadPermission': 'Check category read permission.',
+      'categoriesLoadFailed':
+          'Categories failed to load. Please enter them manually.',
+      'base64ImageError':
+          'Cannot save Base64 image. Upload using the Select button.',
+      'addProductHelp':
+          'Add a product so the catalog updates automatically from Firestore.',
+    },
+    AppLanguage.gujarati: {
+      'orderSuccess': 'ઓર્ડર સફળતાપૂર્વક મોકલી દીધો છે!',
+      'mustLoginFirst': 'તમારે પહેલા લોગ-ઈન કરવું પડશે.',
+      'shopNamePhoneRequired': 'દુકાનનું નામ અને મોબાઈલ નંબર લખવો જરૂરી છે.',
+      'firebaseOrderPermission':
+          'Firestore rules માં retailer ને orders create permission આપો.',
+      'orderSubmitFailed': 'Order submit નથિ થાયો. ફરી try કરો.',
+      'error': 'ભૂલ: ',
+      'selectLanguage': 'ભાષા પસંદ કરો',
+      'languagePrompt': 'કૃપા કરીને ભાષા પસંદ કરો',
+      'english': 'English',
+      'gujarati': 'ગુજરાતી',
+      'logout': 'Logout',
+      'notifications': 'અહેવાલો',
+      'cart': 'કાર્ટ',
+      'showPrices': 'કિંમત બતાવો',
+      'hidePrices': 'કિંમત છુપાવો',
+      'catalog': 'Catalog',
+      'orders': 'Orders',
+      'account': 'Account',
+      'wholesaleOrderApp': 'Wholesale order app',
+      'retailerAccount': 'Retailer account',
+      'wholesalerOrdersInfoTitle': 'How wholesaler will see orders',
+      'wholesalerOrdersInfoLine1':
+          'Every submitted order saves in Firestore collection: orders',
+      'wholesalerOrdersInfoLine2':
+          'Each order has shopName, phone, note, status, quantity and items.',
+      'wholesalerOrdersInfoLine3':
+          'Wholesaler can open Firebase Console and review new orders.',
+      'save': 'Save',
+      'noCategories': 'No categories',
+      'addCategoryHint':
+          'Add a category so the catalog can update dynamically from products.',
+      'registrationSent':
+          'Registration request sent. You can log in after admin approval.',
+      'emailAlreadyInUse': 'An account already exists with this email.',
+      'emailRequired': 'Email is required.',
+      'invalidEmail': 'Please enter a valid email address.',
+      'emailPasswordIncorrect': 'Email or password is incorrect.',
+      'weakPassword': 'Password must be at least 6 characters.',
+      'enableEmailPasswordSignIn':
+          'Enable Email/Password sign-in in Firebase Authentication.',
+      'networkError': 'Check your internet connection and try again.',
+      'createAccountInfo':
+          'Create an account to book wholesale orders.',
+      'loginInfo': 'Log in to place wholesale orders.',
+      'passwordMismatch': 'Passwords do not match.',
+      'cartEmptyTitle': 'Cart is empty',
+      'cartEmptyMessage': 'Add items to the cart from the catalog.',
+      'cartItems': 'Cart items',
+      'retailerDetails': 'Retailer details',
+      'shopNameLabel': 'Shop name',
+      'phoneLabel': 'Phone / WhatsApp number',
+      'orderNoteLabel': 'Order note',
+      'submitOrder': 'Submit order',
+      'submittingOrder': 'Submitting order...',
+      'loginRequired': 'Login required',
+      'loginToViewOrders': 'Log in to view your orders.',
+      'ordersLoadFailed': 'Orders failed to load',
+      'ordersLoadHelp':
+          'Check Firestore rules/index. Orders appear in Firestore after submission.',
+      'firstOrderPrompt': 'Place your first wholesale order from the cart.',
+      'orderStatusUpdated': 'Order status set to {status}.',
+      'statusUpdateFailed': 'Status update failed. Please try again.',
+      'categoryReadPermission': 'Check category read permission.',
+      'categoriesLoadFailed':
+          'Categories failed to load. Please enter them manually.',
+      'base64ImageError':
+          'Cannot save Base64 image. Upload using the Select button.',
+      'addProductHelp':
+          'Add a product so the catalog updates automatically from Firestore.',
+    },
+  };
+
+  static String text(AppLanguage language, String key) =>
+      _translations[language]?[key] ?? key;
+}
+
+class _LanguageSettings {
+  static const _prefKey = 'appLanguage';
+
+  static Future<AppLanguage> loadLanguage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final value = prefs.getString(_prefKey);
+    if (value == AppLanguage.gujarati.name) {
+      return AppLanguage.gujarati;
+    }
+    return AppLanguage.english;
+  }
+
+  static Future<void> saveLanguage(AppLanguage language) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_prefKey, language.name);
+  }
+}
+
+Future<void> showLanguageSelectorDialog(BuildContext context) async {
+  final initialLanguage = languageNotifier.value;
+  await showDialog<void>(
+    context: context,
+    builder: (context) {
+      var selectedLanguage = initialLanguage;
+      return StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text(AppLocalizations.text(initialLanguage, 'selectLanguage')),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: AppLanguage.values
+                .map(
+                  (lang) => RadioListTile<AppLanguage>(
+                    value: lang,
+                    groupValue: selectedLanguage,
+                    title: Text(lang.displayName),
+                    onChanged: (selected) async {
+                      if (selected == null) return;
+                      setState(() => selectedLanguage = selected);
+                      languageNotifier.value = selected;
+                      await _LanguageSettings.saveLanguage(selected);
+                    },
+                  ),
+                )
+                .toList(),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(AppLocalizations.text(initialLanguage, 'save')),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
 Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Initialize Notifications
+  await _NotificationService.initialize();
+
+  languageNotifier.value = await _LanguageSettings.loadLanguage();
+
+  runApp(const DhanlaxmiNoveltyApp());
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
@@ -115,28 +343,33 @@ class DhanlaxmiNoveltyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     const seed = Color(0xFF0F766E);
 
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Dhanlaxmi Novelty',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: seed),
-        scaffoldBackgroundColor: const Color(0xFFF7F7F2),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: Colors.white,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+    return ValueListenableBuilder<AppLanguage>(
+      valueListenable: languageNotifier,
+      builder: (context, language, _) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'Dhanlaxmi Novelty',
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(seedColor: seed),
+            scaffoldBackgroundColor: const Color(0xFFF7F7F2),
+            inputDecorationTheme: InputDecorationTheme(
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+              ),
+            ),
+            useMaterial3: true,
+            textTheme: Theme.of(context).textTheme.apply(
+              bodyColor: const Color(0xFF1F2933),
+              displayColor: const Color(0xFF1F2933),
+            ),
           ),
-        ),
-        useMaterial3: true,
-        textTheme: Theme.of(context).textTheme.apply(
-          bodyColor: const Color(0xFF1F2933),
-          displayColor: const Color(0xFF1F2933),
-        ),
-      ),
-      home: const NotificationGate(child: AuthGate()),
+          home: const NotificationGate(child: AuthGate()),
+        );
+      },
     );
   }
 }
@@ -402,7 +635,7 @@ class _AuthPageState extends State<AuthPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
-                'Registration request sent. Admin approval pachi login kari shako cho.',
+                'Registration request sent. You can log in after admin approval.',
               ),
             ),
           );
@@ -427,20 +660,20 @@ class _AuthPageState extends State<AuthPage> {
   String _friendlyAuthError(FirebaseAuthException error) {
     switch (error.code) {
       case 'email-already-in-use':
-        return 'Aa email thi account already bani gayu chhe.';
+        return 'An account already exists with this email.';
       case 'invalid-email':
-        return 'Please valid email address lakho.';
+        return 'Please enter a valid email address.';
       case 'user-not-found':
       case 'wrong-password':
       case 'invalid-credential':
-        return 'Email athva password wrong chhe.';
+        return 'Email or password is incorrect.';
       case 'weak-password':
-        return 'Password ochama ocho 6 characters no rakho.';
+        return 'Password must be at least 6 characters.';
       case 'configuration-not-found':
       case 'configuration_not_found':
-        return 'Firebase Authentication ma Email/Password sign-in enable karo.';
+        return 'Enable Email/Password sign-in in Firebase Authentication.';
       case 'network-request-failed':
-        return 'Internet connection check kari ne fari try karo.';
+        return 'Check your internet connection and try again.';
       default:
         return error.message ?? 'Authentication failed. Please try again.';
     }
@@ -481,8 +714,8 @@ class _AuthPageState extends State<AuthPage> {
                     const SizedBox(height: 8),
                     Text(
                       _isSignUp
-                          ? 'Order book karva mate account banao.'
-                          : 'Wholesale order mukva login karo.',
+                          ? 'Create an account to place wholesale orders.'
+                          : 'Log in to place wholesale orders.',
                       style: const TextStyle(color: Color(0xFF64748B)),
                     ),
                     const SizedBox(height: 22),
@@ -496,7 +729,7 @@ class _AuthPageState extends State<AuthPage> {
                         ),
                         validator: (value) {
                           if ((value ?? '').trim().isEmpty) {
-                            return 'Name required chhe.';
+                            return 'Name is required.';
                           }
                           return null;
                         },
@@ -514,10 +747,10 @@ class _AuthPageState extends State<AuthPage> {
                       validator: (value) {
                         final email = (value ?? '').trim();
                         if (email.isEmpty) {
-                          return 'Email required chhe.';
+                          return 'Email is required.';
                         }
                         if (!email.contains('@')) {
-                          return 'Valid email lakho.';
+                          return 'Please enter a valid email address.';
                         }
                         return null;
                       },
@@ -584,7 +817,7 @@ class _AuthPageState extends State<AuthPage> {
                         ),
                         validator: (value) {
                           if (value != _passwordController.text) {
-                            return 'Password match thato nathi.';
+                            return 'Passwords do not match.';
                           }
                           return null;
                         },
@@ -899,8 +1132,10 @@ class _ShopHomePageState extends State<ShopHomePage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('ઓર્ડર સફળતાપૂર્વક મોકલી દીધો છે!'),
+          SnackBar(
+            content: Text(
+              AppLocalizations.text(languageNotifier.value, 'orderSuccess'),
+            ),
             backgroundColor: Colors.green,
           ),
         );
@@ -919,7 +1154,10 @@ class _ShopHomePageState extends State<ShopHomePage> {
       debugPrint('Error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('ભૂલ: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('${AppLocalizations.text(languageNotifier.value, 'error')}$e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
@@ -931,9 +1169,13 @@ class _ShopHomePageState extends State<ShopHomePage> {
 
   String _firestoreError(FirebaseException error) {
     if (error.code == 'permission-denied') {
-      return 'Firestore rules ma retailer ne orders create permission aapo.';
+      return AppLocalizations.text(
+        languageNotifier.value,
+        'firebaseOrderPermission',
+      );
     }
-    return error.message ?? 'Order submit nathi thayo. Fari try karo.';
+    return error.message ??
+        AppLocalizations.text(languageNotifier.value, 'orderSubmitFailed');
   }
 
   Future<void> _signOut() async {
@@ -963,6 +1205,7 @@ class _ShopHomePageState extends State<ShopHomePage> {
               categoriesSnapshot.data?.docs ?? [],
             );
 
+            final language = languageNotifier.value;
             final displayCategories = <_CatalogCategory>[];
             displayCategories.add(
               _CatalogCategory(
@@ -986,6 +1229,7 @@ class _ShopHomePageState extends State<ShopHomePage> {
                 },
               ),
               _CartPage(
+                language: language,
                 cartLines: _cart.values.toList(),
                 shopNameController: _shopNameController,
                 phoneController: _phoneController,
@@ -996,20 +1240,27 @@ class _ShopHomePageState extends State<ShopHomePage> {
                 onDetailsChanged: _saveCartToFirestore,
                 onSubmit: _submitOrder,
               ),
-              const _OrdersPage(),
+              _OrdersPage(language: language),
               _NotificationsPage(notifications: _notifications),
-              _AccountPage(onSignOut: _signOut),
+              _AccountPage(
+                language: language,
+                onSignOut: _signOut,
+              ),
             ];
 
             return Scaffold(
               appBar: AppBar(
-                title: const _BrandHeader(subtitle: 'Wholesale order app'),
+                title: _BrandHeader(
+                  subtitle: AppLocalizations.text(language, 'wholesaleOrderApp'),
+                ),
                 actions: [
                   ValueListenableBuilder<bool>(
                     valueListenable: _showPriceNotifier,
                     builder: (context, show, child) {
                       return IconButton(
-                        tooltip: show ? 'Hide Prices' : 'Show Prices',
+                        tooltip: show
+                            ? AppLocalizations.text(language, 'hidePrices')
+                            : AppLocalizations.text(language, 'showPrices'),
                         icon: Icon(
                           show ? Icons.visibility : Icons.visibility_off,
                         ),
@@ -1023,7 +1274,7 @@ class _ShopHomePageState extends State<ShopHomePage> {
                       child: Badge.count(
                         count: _totalQuantity,
                         child: IconButton.filledTonal(
-                          tooltip: 'Cart',
+                          tooltip: AppLocalizations.text(language, 'cart'),
                           onPressed: () {
                             setState(() => _selectedTab = 1);
                           },
@@ -1035,7 +1286,7 @@ class _ShopHomePageState extends State<ShopHomePage> {
                     padding: const EdgeInsets.only(right: 8),
                     child: _notifications.isEmpty
                         ? IconButton(
-                            tooltip: 'Notifications',
+                            tooltip: AppLocalizations.text(language, 'notifications'),
                             onPressed: () {
                               setState(() => _selectedTab = 3);
                             },
@@ -1044,7 +1295,7 @@ class _ShopHomePageState extends State<ShopHomePage> {
                         : Badge.count(
                             count: _notifications.length,
                             child: IconButton.filledTonal(
-                              tooltip: 'Notifications',
+                              tooltip: AppLocalizations.text(language, 'notifications'),
                               onPressed: () {
                                 setState(() => _selectedTab = 3);
                               },
@@ -1053,7 +1304,12 @@ class _ShopHomePageState extends State<ShopHomePage> {
                           ),
                   ),
                   IconButton(
-                    tooltip: 'Logout',
+                    tooltip: AppLocalizations.text(language, 'selectLanguage'),
+                    onPressed: () => showLanguageSelectorDialog(context),
+                    icon: const Icon(Icons.language),
+                  ),
+                  IconButton(
+                    tooltip: AppLocalizations.text(language, 'logout'),
                     onPressed: _signOut,
                     icon: const Icon(Icons.logout),
                   ),
@@ -1068,26 +1324,26 @@ class _ShopHomePageState extends State<ShopHomePage> {
                   final tabIndex = index == 3 ? 4 : index;
                   setState(() => _selectedTab = tabIndex);
                 },
-                destinations: const [
+                destinations: [
                   NavigationDestination(
-                    icon: Icon(Icons.inventory_2_outlined),
-                    selectedIcon: Icon(Icons.inventory_2),
-                    label: 'Catalog',
+                    icon: const Icon(Icons.inventory_2_outlined),
+                    selectedIcon: const Icon(Icons.inventory_2),
+                    label: AppLocalizations.text(language, 'catalog'),
                   ),
                   NavigationDestination(
-                    icon: Icon(Icons.shopping_cart_outlined),
-                    selectedIcon: Icon(Icons.shopping_cart),
-                    label: 'Cart',
+                    icon: const Icon(Icons.shopping_cart_outlined),
+                    selectedIcon: const Icon(Icons.shopping_cart),
+                    label: AppLocalizations.text(language, 'cart'),
                   ),
                   NavigationDestination(
-                    icon: Icon(Icons.receipt_long_outlined),
-                    selectedIcon: Icon(Icons.receipt_long),
-                    label: 'Orders',
+                    icon: const Icon(Icons.receipt_long_outlined),
+                    selectedIcon: const Icon(Icons.receipt_long),
+                    label: AppLocalizations.text(language, 'orders'),
                   ),
                   NavigationDestination(
-                    icon: Icon(Icons.person_outline),
-                    selectedIcon: Icon(Icons.person),
-                    label: 'Account',
+                    icon: const Icon(Icons.person_outline),
+                    selectedIcon: const Icon(Icons.person),
+                    label: AppLocalizations.text(language, 'account'),
                   ),
                 ],
               ),
@@ -1459,6 +1715,7 @@ class _CategoryProductsPageState extends State<_CategoryProductsPage> {
 
 class _CartPage extends StatelessWidget {
   const _CartPage({
+    required this.language,
     required this.cartLines,
     required this.shopNameController,
     required this.phoneController,
@@ -1470,6 +1727,7 @@ class _CartPage extends StatelessWidget {
     required this.onSubmit,
   });
 
+  final AppLanguage language;
   final List<_CartLine> cartLines;
   final TextEditingController shopNameController;
   final TextEditingController phoneController;
@@ -1491,10 +1749,10 @@ class _CartPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (cartLines.isEmpty) {
-      return const _EmptyState(
+      return _EmptyState(
         icon: Icons.shopping_cart_outlined,
-        title: 'Cart empty chhe',
-        message: 'Catalog mathi toran, jummar, mandir set vagere add karo.',
+        title: AppLocalizations.text(language, 'cartEmptyTitle'),
+        message: AppLocalizations.text(language, 'cartEmptyMessage'),
       );
     }
 
@@ -1508,9 +1766,9 @@ class _CartPage extends StatelessWidget {
           icon: Icons.shopping_cart_checkout,
         ),
         const SizedBox(height: 14),
-        const Text(
-          'Cart items',
-          style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+        Text(
+          AppLocalizations.text(language, 'cartItems'),
+          style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
         ),
         const SizedBox(height: 10),
         for (final line in cartLines) ...[
@@ -1524,18 +1782,18 @@ class _CartPage extends StatelessWidget {
         const SizedBox(height: 6),
         _CartSummaryPanel(cartLines: cartLines),
         const SizedBox(height: 18),
-        const Text(
-          'Retailer details',
-          style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+        Text(
+          AppLocalizations.text(language, 'retailerDetails'),
+          style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
         ),
         const SizedBox(height: 12),
         TextField(
           controller: shopNameController,
           onChanged: (_) => onDetailsChanged(),
           textInputAction: TextInputAction.next,
-          decoration: const InputDecoration(
-            labelText: 'Shop name',
-            prefixIcon: Icon(Icons.storefront_outlined),
+          decoration: InputDecoration(
+            labelText: AppLocalizations.text(language, 'shopNameLabel'),
+            prefixIcon: const Icon(Icons.storefront_outlined),
           ),
         ),
         const SizedBox(height: 12),
@@ -1544,9 +1802,9 @@ class _CartPage extends StatelessWidget {
           onChanged: (_) => onDetailsChanged(),
           keyboardType: TextInputType.phone,
           textInputAction: TextInputAction.next,
-          decoration: const InputDecoration(
-            labelText: 'Phone / WhatsApp number',
-            prefixIcon: Icon(Icons.call_outlined),
+          decoration: InputDecoration(
+            labelText: AppLocalizations.text(language, 'phoneLabel'),
+            prefixIcon: const Icon(Icons.call_outlined),
           ),
         ),
         const SizedBox(height: 12),
@@ -1555,9 +1813,9 @@ class _CartPage extends StatelessWidget {
           onChanged: (_) => onDetailsChanged(),
           minLines: 2,
           maxLines: 4,
-          decoration: const InputDecoration(
-            labelText: 'Order note',
-            prefixIcon: Icon(Icons.note_alt_outlined),
+          decoration: InputDecoration(
+            labelText: AppLocalizations.text(language, 'orderNoteLabel'),
+            prefixIcon: const Icon(Icons.note_alt_outlined),
           ),
         ),
         const SizedBox(height: 18),
@@ -1570,7 +1828,9 @@ class _CartPage extends StatelessWidget {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Icon(Icons.send_outlined),
-          label: const Text('Send order to wholesaler'),
+          label: Text(isSubmitting
+              ? AppLocalizations.text(language, 'submittingOrder')
+              : AppLocalizations.text(language, 'submitOrder')),
         ),
       ],
     );
@@ -1578,17 +1838,19 @@ class _CartPage extends StatelessWidget {
 }
 
 class _OrdersPage extends StatelessWidget {
-  const _OrdersPage();
+  const _OrdersPage({required this.language});
+
+  final AppLanguage language;
 
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
-      return const _EmptyState(
+      return _EmptyState(
         icon: Icons.login,
-        title: 'Login required',
-        message: 'Orders dekhva mate login karo.',
+        title: AppLocalizations.text(language, 'loginRequired'),
+        message: AppLocalizations.text(language, 'loginToViewOrders'),
       );
     }
 
@@ -1603,11 +1865,10 @@ class _OrdersPage extends StatelessWidget {
         }
 
         if (snapshot.hasError) {
-          return const _EmptyState(
+          return _EmptyState(
             icon: Icons.warning_amber_outlined,
-            title: 'Orders load nathi thata',
-            message:
-                'Firestore index/rules check karo. Order submit pachhi Firestore ma orders collection banse.',
+            title: AppLocalizations.text(language, 'ordersLoadFailed'),
+            message: AppLocalizations.text(language, 'ordersLoadHelp'),
           );
         }
 
@@ -1621,10 +1882,10 @@ class _OrdersPage extends StatelessWidget {
           return 0;
         });
         if (docs.isEmpty) {
-          return const _EmptyState(
+          return _EmptyState(
             icon: Icons.receipt_long_outlined,
-            title: 'No orders yet',
-            message: 'Cart mathi first wholesale order moklo.',
+            title: AppLocalizations.text(language, 'noOrdersYet'),
+            message: AppLocalizations.text(language, 'firstOrderPrompt'),
           );
         }
 
@@ -1655,7 +1916,7 @@ class _NotificationsPage extends StatelessWidget {
       return const _EmptyState(
         icon: Icons.notifications_none_outlined,
         title: 'No notifications',
-        message: 'Notifications ethe dekhashe.',
+        message: 'Notifications will appear here.',
       );
     }
 
@@ -1692,8 +1953,9 @@ class _NotificationsPage extends StatelessWidget {
 }
 
 class _AccountPage extends StatelessWidget {
-  const _AccountPage({required this.onSignOut});
+  const _AccountPage({required this.language, required this.onSignOut});
 
+  final AppLanguage language;
   final VoidCallback onSignOut;
 
   @override
@@ -1706,24 +1968,31 @@ class _AccountPage extends StatelessWidget {
         _SummaryStrip(
           title: user?.displayName?.isNotEmpty == true
               ? user!.displayName!
-              : 'Retailer account',
-          subtitle: 'Dhanlaxmi Novelty retailer',
+              : AppLocalizations.text(language, 'retailerAccount'),
+          subtitle: AppLocalizations.text(language, 'retailerAccount'),
           icon: Icons.person,
         ),
         const SizedBox(height: 14),
-        const _InfoPanel(
-          title: 'How wholesaler will see orders',
+        _InfoPanel(
+          title: AppLocalizations.text(language, 'wholesalerOrdersInfoTitle'),
           lines: [
-            'Every submitted order saves in Firestore collection: orders',
-            'Each order has shopName, phone, note, status, quantity and items.',
-            'Wholesaler can open Firebase Console and review new orders.',
+            AppLocalizations.text(language, 'wholesalerOrdersInfoLine1'),
+            AppLocalizations.text(language, 'wholesalerOrdersInfoLine2'),
+            AppLocalizations.text(language, 'wholesalerOrdersInfoLine3'),
           ],
+        ),
+        const SizedBox(height: 14),
+        ListTile(
+          leading: const Icon(Icons.language),
+          title: Text(AppLocalizations.text(language, 'selectLanguage')),
+          subtitle: Text(language.displayName),
+          onTap: () => showLanguageSelectorDialog(context),
         ),
         const SizedBox(height: 14),
         FilledButton.tonalIcon(
           onPressed: onSignOut,
           icon: const Icon(Icons.logout),
-          label: const Text('Logout'),
+          label: Text(AppLocalizations.text(language, 'logout')),
         ),
       ],
     );
@@ -1754,7 +2023,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Order status $status kari didho.')),
+          SnackBar(content: Text('Order status set to $status.')),
         );
       }
     } on FirebaseException catch (error) {
@@ -1763,8 +2032,8 @@ class _AdminHomePageState extends State<AdminHomePage> {
           SnackBar(
             content: Text(
               error.code == 'permission-denied'
-                  ? 'Admin permission required chhe.'
-                  : 'Status update nathi thayo. Fari try karo.',
+                  ? 'Admin permission required.'
+                  : 'Status update failed. Please try again.',
             ),
           ),
         );
@@ -1890,8 +2159,8 @@ class _AdminOrdersPage extends StatelessWidget {
               if (snapshot.hasError) {
                 return const _EmptyState(
                   icon: Icons.warning_amber_outlined,
-                  title: 'Orders load nathi thata',
-                  message: 'Firestore rules/index check karo.',
+                  title: 'Orders failed to load',
+                  message: 'Check Firestore rules/index settings.',
                 );
               }
 
@@ -1905,7 +2174,7 @@ class _AdminOrdersPage extends StatelessWidget {
                 return const _EmptyState(
                   icon: Icons.receipt_long_outlined,
                   title: 'No orders found',
-                  message: 'Retailer order mukse tyare ahi dekhase.',
+                  message: 'New retailer orders will appear here after submission.',
                 );
               }
 
@@ -1984,8 +2253,8 @@ class _AdminProductsPage extends StatelessWidget {
           SnackBar(
             content: Text(
               error.code == 'permission-denied'
-                  ? 'Category read permission check karo.'
-                  : 'Categories load nathi thai. Manual category lakho.',
+                  ? 'Check category read permission.'
+                  : 'Categories failed to load. Please enter them manually.',
             ),
           ),
         );
@@ -2136,7 +2405,7 @@ class _AdminProductsPage extends StatelessWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text(
-                        'Base64 image save nathi thai shake. Please "Select" button thi image upload karo.',
+                        'Cannot save Base64 image. Upload using the Select button.',
                       ),
                       backgroundColor: Colors.red,
                     ),
@@ -2218,7 +2487,7 @@ class _AdminProductsPage extends StatelessWidget {
               icon: Icons.inventory_2_outlined,
               title: 'No Firebase products',
               message:
-                  'Add product karo. Products collection mathi catalog dynamic thase.',
+                  'Add a product so the catalog updates automatically from Firestore.',
             );
           }
 
@@ -2364,7 +2633,7 @@ class _AdminCategoriesPage extends StatelessWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text(
-                        'Base64 image save nathi thai shake. Please "Select" button thi image upload karo.',
+                        'Cannot save Base64 image. Upload using the Select button.',
                       ),
                       backgroundColor: Colors.red,
                     ),
@@ -2444,7 +2713,7 @@ class _AdminCategoriesPage extends StatelessWidget {
               icon: Icons.category_outlined,
               title: 'No categories',
               message:
-                  'Add category karo. Product form ma same category name use karo.',
+                  'Add a category. Use the same category name in the product form.',
             );
           }
 
@@ -2573,7 +2842,7 @@ class _WholesaleBanner extends StatelessWidget {
           ),
           const SizedBox(height: 9),
           const Text(
-            'Retailer product select kari quantity add kare, pachhi order directly wholesaler ne Firestore ma moklay.',
+            'Retailer selects products, adds quantities, and places orders directly to wholesaler via Firestore.',
             style: TextStyle(color: Color(0xFFD1FAE5), height: 1.35),
           ),
           const SizedBox(height: 16),
@@ -3946,7 +4215,7 @@ class _OrderTile extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete Order?'),
-        content: const Text('Are you sure? Aa order delete thai jashe.'),
+        content: const Text('Are you sure? This order will be deleted.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -3972,14 +4241,14 @@ class _OrderTile extends StatelessWidget {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Order successfully delete kari didho.'),
+              content: const Text('Order deleted successfully.'),
             ),
           );
         }
       } catch (e) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Error: Order delete nathi thayo.')),
+            const SnackBar(content: Text('Error: Order deletion failed.')),
           );
         }
       }
@@ -4164,7 +4433,7 @@ Future<void> _sendOrderOnWhatsApp(Map<String, dynamic> data) async {
 Future<String?> _pickAndUploadImage(BuildContext context, String folder) async {
   final user = FirebaseAuth.instance.currentUser;
   if (user == null) {
-    _showUploadError(context, 'Please login pachi image upload karo.');
+    _showUploadError(context, 'Please log in before uploading images.');
     return null;
   }
 
@@ -4180,7 +4449,7 @@ Future<String?> _pickAndUploadImage(BuildContext context, String folder) async {
     if (context.mounted) {
       _showUploadError(
         context,
-        'Gallery open nathi thai. Photo permission allow kari ne fari try karo.',
+        'Gallery could not open. Allow photo permission and try again.',
       );
     }
     return null;
@@ -4197,7 +4466,7 @@ Future<String?> _pickAndUploadImage(BuildContext context, String folder) async {
       if (context.mounted) {
         _showUploadError(
           context,
-          'Image 5 MB karta nani hovi joie. Please biji image select karo.',
+          'Image must be smaller than 5 MB. Please select a different image.',
         );
       }
       return null;
@@ -4208,7 +4477,7 @@ Future<String?> _pickAndUploadImage(BuildContext context, String folder) async {
       if (context.mounted) {
         _showUploadError(
           context,
-          'Please JPG, PNG, GIF, athva WEBP image select karo.',
+          'Please select a JPG, PNG, GIF, or WEBP image.',
         );
       }
       return null;
@@ -4235,7 +4504,7 @@ Future<String?> _pickAndUploadImage(BuildContext context, String folder) async {
     if (context.mounted) {
       _showUploadError(
         context,
-        'Image upload nathi thai. Please fari try karo.',
+        'Image upload failed. Please try again.',
       );
     }
     return null;
@@ -4324,9 +4593,9 @@ String _friendlyCloudinaryError(http.Response response) {
   }
 
   if (response.statusCode == 400 || response.statusCode == 401) {
-    return 'Cloudinary cloud name/upload preset check karo.';
+    return 'Check your Cloudinary cloud name and upload preset.';
   }
-  return 'Cloudinary upload failed. Please fari try karo.';
+  return 'Cloudinary upload failed. Please try again.';
 }
 
 void _showUploadError(BuildContext context, String message) {
@@ -4895,7 +5164,7 @@ class _PendingApprovalPage extends StatelessWidget {
               Icon(Icons.hourglass_top, size: 72, color: Colors.amber),
               SizedBox(height: 24),
               Text(
-                'Tamari registration request admin pase moklavi didhi.\nAdmin approve kare tyare login kari shako cho.',
+                'Your registration request has been sent to the admin. You can log in after approval.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 18),
               ),
@@ -4972,7 +5241,7 @@ class _AdminUsersPage extends StatelessWidget {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('User successfully delete kari didho.'),
+              content: const Text('User deleted successfully.'),
             ),
           );
         }
@@ -4980,7 +5249,7 @@ class _AdminUsersPage extends StatelessWidget {
         if (context.mounted) {
           String errorMsg = 'Delete failed.';
           if (e.code == 'permission-denied') {
-            errorMsg = 'Permission denied. Firestore rules check karo.';
+            errorMsg = 'Permission denied. Check Firestore rules.';
           } else {
             errorMsg = 'Error: ${e.message}';
           }
