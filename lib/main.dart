@@ -211,8 +211,10 @@ Future<void> showLanguageSelectorDialog(BuildContext context) async {
                 .map(
                   (lang) => RadioListTile<AppLanguage>(
                     value: lang,
+                    // ignore: deprecated_member_use
                     groupValue: selectedLanguage,
                     title: Text(lang.displayName),
+                    // ignore: deprecated_member_use
                     onChanged: (selected) async {
                       if (selected == null) return;
                       setState(() => selectedLanguage = selected);
@@ -243,13 +245,6 @@ Future<void> main() async {
   await _NotificationService.initialize();
 
   languageNotifier.value = await _LanguageSettings.loadLanguage();
-
-  runApp(const DhanlaxmiNoveltyApp());
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
-  // Initialize Notifications
-  await _NotificationService.initialize();
 
   runApp(const DhanlaxmiNoveltyApp());
 }
@@ -714,8 +709,8 @@ class _AuthPageState extends State<AuthPage> {
                     const SizedBox(height: 8),
                     Text(
                       _isSignUp
-                          ? 'Create an account to place wholesale orders.'
-                          : 'Log in to place wholesale orders.',
+                          ? 'Order book karva mate account banao.'
+                          : 'Wholesale order mukva login karo.',
                       style: const TextStyle(color: Color(0xFF64748B)),
                     ),
                     const SizedBox(height: 22),
@@ -4215,7 +4210,7 @@ class _OrderTile extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete Order?'),
-        content: const Text('Are you sure? This order will be deleted.'),
+        content: const Text('Are you sure? Aa order delete thai jashe.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -4241,14 +4236,14 @@ class _OrderTile extends StatelessWidget {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: const Text('Order deleted successfully.'),
+              content: Text('Order successfully delete kari didho.'),
             ),
           );
         }
       } catch (e) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Error: Order deletion failed.')),
+            const SnackBar(content: Text('Error: Order delete nathi thayo.')),
           );
         }
       }
@@ -5241,7 +5236,7 @@ class _AdminUsersPage extends StatelessWidget {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: const Text('User deleted successfully.'),
+              content: Text('User deleted successfully.'),
             ),
           );
         }
