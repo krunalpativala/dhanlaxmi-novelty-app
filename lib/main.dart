@@ -72,8 +72,17 @@ class AppLocalizations {
           'Enable Email/Password sign-in in Firebase Authentication.',
       'networkError': 'Check your internet connection and try again.',
       'createAccountInfo':
-          'Create an account to book wholesale orders.',
+          'Create an account. Admin will approve you as retailer or customer.',
       'loginInfo': 'Log in to place wholesale orders.',
+      'customerAccount': 'Customer account',
+      'customerDetails': 'Delivery details',
+      'deliveryAddressLabel': 'Delivery address',
+      'paymentMethodLabel': 'Payment method',
+      'paymentMethodCOD': 'Cash on delivery',
+      'paymentMethodOnline': 'Online payment',
+      'paymentInfoOnline':
+          'Online payment is currently saved as payment pending for now.',
+      'placeOrder': 'Place order',
       'passwordMismatch': 'Passwords do not match.',
       'cartEmptyTitle': 'Cart is empty',
       'cartEmptyMessage': 'Add items to the cart from the catalog.',
@@ -99,6 +108,18 @@ class AppLocalizations {
           'Cannot save Base64 image. Upload using the Select button.',
       'addProductHelp':
           'Add a product so the catalog updates automatically from Firestore.',
+      'noOrdersYet': 'No orders yet',
+      'passwordLengthError': 'Password must be at least 6 characters.',
+      'createAccount': 'Create account',
+      'login': 'Login',
+      'signUpInfo': 'Create your account and wait for admin approval.',
+      'loginContinue': 'Login to continue.',
+      'fullName': 'Full name',
+      'email': 'Email',
+      'password': 'Password',
+      'confirmPassword': 'Confirm password',
+      'alreadyHaveAccount': 'Already have an account? Login',
+      'newUserCreateAccount': 'New user? Create account',
     },
     AppLanguage.gujarati: {
       'orderSuccess': 'ઓર્ડર સફળતાપૂર્વક મોકલી દીધો છે!',
@@ -144,8 +165,17 @@ class AppLocalizations {
           'Enable Email/Password sign-in in Firebase Authentication.',
       'networkError': 'Check your internet connection and try again.',
       'createAccountInfo':
-          'Create an account to book wholesale orders.',
-      'loginInfo': 'Log in to place wholesale orders.',
+          'આખું વ્હોલસેલ ઓર્ડર માટે એકાઉન્ટ બનાવો. એડમિન તમને રિટેલર અથવા કસ્ટમર તરીકે મંજૂર કરશે.',
+      'loginInfo': 'વ્હોલસેલ ઓર્ડર મૂકવા માટે લોગિન કરો.',
+      'customerAccount': 'Customer account',
+      'customerDetails': 'ડિલિવરી વિગતો',
+      'deliveryAddressLabel': 'ડિલિવરી સરનામું',
+      'paymentMethodLabel': 'ચુકવણી રીત',
+      'paymentMethodCOD': 'નગદ પર ડિલિવરી',
+      'paymentMethodOnline': 'ઓનલાઇન ચુકવણી',
+      'paymentInfoOnline':
+          'ઓનલાઇન ચુકવણી હાલમાં પેમેન્ટ પેન્ડિંગ તરીકે સાચવવામાં આવે છે.',
+      'placeOrder': 'ઓર્ડર મૂકવો',
       'passwordMismatch': 'Passwords do not match.',
       'cartEmptyTitle': 'Cart is empty',
       'cartEmptyMessage': 'Add items to the cart from the catalog.',
@@ -171,7 +201,20 @@ class AppLocalizations {
           'Cannot save Base64 image. Upload using the Select button.',
       'addProductHelp':
           'Add a product so the catalog updates automatically from Firestore.',
+      'noOrdersYet': 'હજુ સુધી કોઈ ઓર્ડર નથી',
+      'passwordLengthError': 'પાસવર્ડ ઓછામાં ઓછો 6 અક્ષરનો હોવો જોઈએ.',
+      'createAccount': 'એકાઉન્ટ બનાવો',
+      'login': 'લોગિન',
+      'signUpInfo': 'તમારું એકાઉન્ટ બનાવો અને એડમિન મંજૂરીની રાહ જુઓ.',
+      'loginContinue': 'ચાલુ રાખવા માટે લોગિન કરો.',
+      'fullName': 'પૂરું નામ',
+      'email': 'ઈમેઈલ',
+      'password': 'પાસવર્ડ',
+      'confirmPassword': 'પાસવર્ડની પુષ્ટિ કરો',
+      'alreadyHaveAccount': 'પહેલેથી જ એકાઉન્ટ છે? લોગિન કરો',
+      'newUserCreateAccount': 'નવા વપરાશકર્તા? એકાઉન્ટ બનાવો',
     },
+
   };
 
   static String text(AppLanguage language, String key) =>
@@ -245,6 +288,13 @@ Future<void> main() async {
   await _NotificationService.initialize();
 
   languageNotifier.value = await _LanguageSettings.loadLanguage();
+
+  runApp(const DhanlaxmiNoveltyApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Initialize Notifications
+  await _NotificationService.initialize();
 
   runApp(const DhanlaxmiNoveltyApp());
 }
@@ -484,7 +534,28 @@ class _RealtimeNotificationManagerState
       _subscriptions.add(subscription);
     }
 
-    // 2. Listen for New Orders (For Admin)
+    // 2. Listen for Order Status Updates (For Customers)
+    if (widget.role == 'customer') {
+      final subscription = FirebaseFirestore.instance
+          .collection('orders')
+          .where('customerUid', isEqualTo: widget.userId)
+          .snapshots()
+          .listen((snapshot) {
+            for (var change in snapshot.docChanges) {
+              if (change.type == DocumentChangeType.modified) {
+                final data = change.doc.data();
+                final status = data?['status'] ?? 'pending';
+                _NotificationService._showLocalNotification(
+                  'Order Update',
+                  'Aapka order status ab "$status" hai.',
+                );
+              }
+            }
+          });
+      _subscriptions.add(subscription);
+    }
+
+    // 3. Listen for New Orders (For Admin)
     if (widget.role == 'admin') {
       final subscription = FirebaseFirestore.instance
           .collection('orders')
@@ -499,7 +570,7 @@ class _RealtimeNotificationManagerState
                     createdAt.toDate().isAfter(
                       DateTime.now().subtract(const Duration(minutes: 1)),
                     )) {
-                  final shop = data?['shopName'] ?? 'Unknown Shop';
+                  final shop = data?['shopName'] ?? data?['customerName'] ?? 'New Order';
                   _NotificationService._showLocalNotification(
                     'New Order Received! 🛍️',
                     'Naya order aaya hai: $shop',
@@ -551,6 +622,9 @@ class AuthGate extends StatelessWidget {
             }
             if (role == 'retailer') {
               return const ShopHomePage();
+            }
+            if (role == 'customer') {
+              return const CustomerHomePage();
             }
 
             return const _PendingApprovalPage();
@@ -685,6 +759,8 @@ class _AuthPageState extends State<AuthPage> {
 
   @override
   Widget build(BuildContext context) {
+    final language = languageNotifier.value;
+
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -700,7 +776,9 @@ class _AuthPageState extends State<AuthPage> {
                     const _BrandHeader(subtitle: 'Wholesale retailer orders'),
                     const SizedBox(height: 28),
                     Text(
-                      _isSignUp ? 'Create retailer account' : 'Retailer login',
+                      _isSignUp
+                          ? AppLocalizations.text(language, 'createAccount')
+                          : AppLocalizations.text(language, 'login'),
                       style: const TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.w900,
@@ -709,8 +787,8 @@ class _AuthPageState extends State<AuthPage> {
                     const SizedBox(height: 8),
                     Text(
                       _isSignUp
-                          ? 'Order book karva mate account banao.'
-                          : 'Wholesale order mukva login karo.',
+                          ? AppLocalizations.text(language, 'signUpInfo')
+                          : AppLocalizations.text(language, 'loginContinue'),
                       style: const TextStyle(color: Color(0xFF64748B)),
                     ),
                     const SizedBox(height: 22),
@@ -718,9 +796,9 @@ class _AuthPageState extends State<AuthPage> {
                       TextFormField(
                         controller: _nameController,
                         textInputAction: TextInputAction.next,
-                        decoration: const InputDecoration(
-                          labelText: 'Retailer name',
-                          prefixIcon: Icon(Icons.person_outline),
+                        decoration: InputDecoration(
+                          labelText: AppLocalizations.text(language, 'fullName'),
+                          prefixIcon: const Icon(Icons.person_outline),
                         ),
                         validator: (value) {
                           if ((value ?? '').trim().isEmpty) {
@@ -735,17 +813,17 @@ class _AuthPageState extends State<AuthPage> {
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: Icon(Icons.email_outlined),
+                      decoration: InputDecoration(
+                        labelText: AppLocalizations.text(language, 'email'),
+                        prefixIcon: const Icon(Icons.email_outlined),
                       ),
                       validator: (value) {
                         final email = (value ?? '').trim();
                         if (email.isEmpty) {
-                          return 'Email is required.';
+                          return AppLocalizations.text(language, 'emailRequired');
                         }
                         if (!email.contains('@')) {
-                          return 'Please enter a valid email address.';
+                          return AppLocalizations.text(language, 'invalidEmail');
                         }
                         return null;
                       },
@@ -763,7 +841,7 @@ class _AuthPageState extends State<AuthPage> {
                         }
                       },
                       decoration: InputDecoration(
-                        labelText: 'Password',
+                        labelText: AppLocalizations.text(language, 'password'),
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
                           tooltip: _hidePassword
@@ -781,7 +859,7 @@ class _AuthPageState extends State<AuthPage> {
                       ),
                       validator: (value) {
                         if ((value ?? '').length < 6) {
-                          return 'Password minimum 6 characters no rakho.';
+                          return AppLocalizations.text(language, 'passwordLengthError');
                         }
                         return null;
                       },
@@ -794,7 +872,7 @@ class _AuthPageState extends State<AuthPage> {
                         textInputAction: TextInputAction.done,
                         onFieldSubmitted: (_) => _submit(),
                         decoration: InputDecoration(
-                          labelText: 'Confirm password',
+                          labelText: AppLocalizations.text(language, 'confirmPassword'),
                           prefixIcon: const Icon(Icons.verified_user_outlined),
                           suffixIcon: IconButton(
                             tooltip: _hidePassword
@@ -812,7 +890,7 @@ class _AuthPageState extends State<AuthPage> {
                         ),
                         validator: (value) {
                           if (value != _passwordController.text) {
-                            return 'Passwords do not match.';
+                            return AppLocalizations.text(language, 'passwordMismatch');
                           }
                           return null;
                         },
@@ -834,15 +912,17 @@ class _AuthPageState extends State<AuthPage> {
                           : Icon(
                               _isSignUp ? Icons.person_add_alt_1 : Icons.login,
                             ),
-                      label: Text(_isSignUp ? 'Sign up' : 'Login'),
+                      label: Text(_isSignUp
+                          ? AppLocalizations.text(language, 'createAccount')
+                          : AppLocalizations.text(language, 'login')),
                     ),
                     const SizedBox(height: 12),
                     TextButton(
                       onPressed: _isLoading ? null : _toggleMode,
                       child: Text(
                         _isSignUp
-                            ? 'Already have an account? Login'
-                            : 'New retailer? Create account',
+                            ? AppLocalizations.text(language, 'alreadyHaveAccount')
+                            : AppLocalizations.text(language, 'newUserCreateAccount'),
                       ),
                     ),
                   ],
@@ -1350,6 +1430,645 @@ class _ShopHomePageState extends State<ShopHomePage> {
   }
 }
 
+class CustomerHomePage extends StatefulWidget {
+  const CustomerHomePage({super.key});
+
+  @override
+  State<CustomerHomePage> createState() => _CustomerHomePageState();
+}
+
+class _CustomerHomePageState extends State<CustomerHomePage> {
+  final Map<String, _CartLine> _cart = {};
+  final _deliveryAddressController = TextEditingController();
+  String _paymentMethod = 'cod';
+  final List<Map<String, dynamic>> _notifications = [];
+  int _selectedTab = 0;
+  bool _isSubmitting = false;
+  bool _isCartLoading = true;
+
+  int get _totalQuantity =>
+      _cart.values.fold(0, (total, line) => total + line.quantity);
+
+  int get _totalProducts => _cart.length;
+
+  double get _cartTotalAmount => _cart.values.fold(
+        0,
+        (total, line) => total + (line.product.price * line.quantity),
+      );
+
+  DocumentReference<Map<String, dynamic>>? get _cartDocument {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return null;
+    }
+    return FirebaseFirestore.instance.collection('carts').doc(user.uid);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCartFromFirestore();
+    _notifications.addAll(_NotificationService.notificationsNotifier.value);
+    _NotificationService.notificationsNotifier.addListener(_onNotificationsChanged);
+  }
+
+  void _onNotificationsChanged() {
+    if (mounted) {
+      setState(() {
+        _notifications.clear();
+        _notifications.addAll(_NotificationService.notificationsNotifier.value);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _NotificationService.notificationsNotifier.removeListener(_onNotificationsChanged);
+    _deliveryAddressController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadCartFromFirestore() async {
+    final cartDocument = _cartDocument;
+    if (cartDocument == null) {
+      setState(() => _isCartLoading = false);
+      return;
+    }
+
+    try {
+      final snapshot = await cartDocument.get();
+      final data = snapshot.data();
+      final items = data?['items'] as List<dynamic>? ?? [];
+      final loadedCart = <String, _CartLine>{};
+
+      for (final item in items) {
+        if (item is! Map) {
+          continue;
+        }
+
+        final productId = item['productId']?.toString();
+        final product = _findProductById(productId) ?? _productFromCartItem(item);
+        final quantity = item['quantity'];
+
+        if (product != null && quantity is int && quantity > 0) {
+          loadedCart[product.id] = _CartLine(
+            product: product,
+            quantity: quantity,
+          );
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _cart
+            ..clear()
+            ..addAll(loadedCart);
+          _deliveryAddressController.text = data?['deliveryAddress']?.toString() ?? '';
+          _paymentMethod = data?['paymentMethod']?.toString() ?? 'cod';
+          _isCartLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isCartLoading = false);
+      }
+    }
+  }
+
+  Future<void> _saveCartToFirestore() async {
+    final cartDocument = _cartDocument;
+    if (cartDocument == null) {
+      return;
+    }
+
+    if (_cart.isEmpty) {
+      try {
+        await cartDocument.delete().timeout(const Duration(seconds: 5));
+      } catch (_) {}
+      return;
+    }
+
+    try {
+      final cartData = {
+        'customerUid': FirebaseAuth.instance.currentUser?.uid,
+        'customerName': FirebaseAuth.instance.currentUser?.displayName ?? '',
+        'deliveryAddress': _deliveryAddressController.text.trim(),
+        'paymentMethod': _paymentMethod,
+        'totalProducts': _totalProducts,
+        'totalQuantity': _totalQuantity,
+        'items': _cart.values.map((line) => line.toFirestore()).toList(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      const maxCartDocBytes = 900 * 1024;
+      final cartPayloadBytes = utf8.encode(jsonEncode(cartData)).length;
+      if (cartPayloadBytes > maxCartDocBytes) {
+        debugPrint('Cart sync skipped: document payload $cartPayloadBytes bytes exceeds safe limit $maxCartDocBytes bytes.');
+        return;
+      }
+
+      await cartDocument.set(cartData).timeout(const Duration(seconds: 5));
+    } catch (e) {
+      debugPrint('Cart sync skip: $e');
+    }
+  }
+
+  void _addProduct(_CatalogProduct product) {
+    setState(() {
+      final existing = _cart[product.id];
+      _cart[product.id] = _CartLine(
+        product: product,
+        quantity: existing == null ? product.minimumOrderQuantity : existing.quantity + 1,
+      );
+    });
+    _saveCartToFirestore();
+  }
+
+  void _decreaseProduct(_CatalogProduct product) {
+    final existing = _cart[product.id];
+    if (existing == null) {
+      return;
+    }
+
+    setState(() {
+      if (existing.quantity <= product.minimumOrderQuantity) {
+        _cart.remove(product.id);
+      } else {
+        _cart[product.id] = _CartLine(
+          product: product,
+          quantity: existing.quantity - 1,
+        );
+      }
+    });
+    _saveCartToFirestore();
+  }
+
+  Future<void> _submitOrder() async {
+    if (_cart.isEmpty || _isSubmitting) {
+      return;
+    }
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.text(languageNotifier.value, 'mustLoginFirst')),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      setState(() => _selectedTab = 4);
+      return;
+    }
+
+    final deliveryAddress = _deliveryAddressController.text.trim();
+    if (deliveryAddress.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.text(languageNotifier.value, 'deliveryAddressLabel') + ' is required.'),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final orderItems = _cart.values
+          .map(
+            (line) => {
+              'productId': line.product.id,
+              'name': line.product.name,
+              'category': line.product.category,
+              'unit': line.product.unit,
+              'price': line.product.price,
+              'lineTotal': line.product.price * line.quantity,
+              'imageUrl': line.product.imageUrl,
+              'quantity': line.quantity,
+            },
+          )
+          .toList();
+
+      final orderData = {
+        'customerUid': user.uid,
+        'customerName': user.displayName ?? '',
+        'deliveryAddress': deliveryAddress,
+        'paymentMethod': _paymentMethod,
+        'status': 'pending',
+        'totalProducts': _totalProducts,
+        'totalQuantity': _totalQuantity,
+        'totalAmount': _cartTotalAmount,
+        'items': orderItems,
+        'createdAt': FieldValue.serverTimestamp(),
+      };
+
+      await FirebaseFirestore.instance.collection('orders').add(orderData).timeout(const Duration(seconds: 15));
+
+      if (_cartDocument != null) {
+        await _cartDocument!.delete().catchError((_) => null);
+      }
+
+      setState(() {
+        _cart.clear();
+        _deliveryAddressController.clear();
+        _paymentMethod = 'cod';
+        _selectedTab = 2;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.text(languageNotifier.value, 'orderSuccess')),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } on FirebaseException catch (error) {
+      debugPrint('Firebase Error: ${error.code}');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_firestoreError(error)),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${AppLocalizations.text(languageNotifier.value, 'error')}$e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
+  Future<void> _signOut() async {
+    await FirebaseAuth.instance.signOut();
+  }
+
+  void _handlePaymentChange(String? value) {
+    if (value == null) {
+      return;
+    }
+    setState(() {
+      _paymentMethod = value;
+    });
+    _saveCartToFirestore();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isCartLoading) {
+      return const _LoadingScreen();
+    }
+
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection('products')
+          .where('active', isEqualTo: true)
+          .snapshots(),
+      builder: (context, productsSnapshot) {
+        return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: FirebaseFirestore.instance
+              .collection('categories')
+              .where('active', isEqualTo: true)
+              .snapshots(),
+          builder: (context, categoriesSnapshot) {
+            final allCategories = _categoriesFromProductDocs(
+              productsSnapshot.data?.docs ?? [],
+              categoriesSnapshot.data?.docs ?? [],
+            );
+
+            final language = languageNotifier.value;
+            final displayCategories = <_CatalogCategory>[];
+            displayCategories.add(
+              _CatalogCategory(
+                name: 'All items',
+                icon: Icons.grid_view_outlined,
+                color: const Color(0xFF0F766E),
+                products: allCategories.expand((c) => c.products).toList(),
+                imageUrl: '',
+              ),
+            );
+            displayCategories.addAll(allCategories);
+
+            final pages = [
+              _CatalogPage(
+                categories: displayCategories,
+                cart: _cart,
+                onAdd: _addProduct,
+                onRemove: _decreaseProduct,
+                onOpenCart: () {
+                  setState(() => _selectedTab = 1);
+                },
+              ),
+              _CustomerCartPage(
+                language: language,
+                cartLines: _cart.values.toList(),
+                deliveryAddressController: _deliveryAddressController,
+                paymentMethod: _paymentMethod,
+                isSubmitting: _isSubmitting,
+                onAdd: _addProduct,
+                onRemove: _decreaseProduct,
+                onDetailsChanged: _saveCartToFirestore,
+                onPaymentChanged: _handlePaymentChange,
+                onSubmit: _submitOrder,
+              ),
+              _OrdersPage(language: language),
+              _NotificationsPage(notifications: _notifications),
+              _CustomerAccountPage(
+                language: language,
+                onSignOut: _signOut,
+              ),
+            ];
+
+            return Scaffold(
+              appBar: AppBar(
+                title: _BrandHeader(
+                  subtitle: 'Customer shopping',
+                ),
+                actions: [
+                  ValueListenableBuilder<bool>(
+                    valueListenable: _showPriceNotifier,
+                    builder: (context, show, child) {
+                      return IconButton(
+                        tooltip: show
+                            ? AppLocalizations.text(language, 'hidePrices')
+                            : AppLocalizations.text(language, 'showPrices'),
+                        icon: Icon(
+                          show ? Icons.visibility : Icons.visibility_off,
+                        ),
+                        onPressed: () => _handlePriceVisibilityToggle(context),
+                      );
+                    },
+                  ),
+                  if (_totalQuantity > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Badge.count(
+                        count: _totalQuantity,
+                        child: IconButton.filledTonal(
+                          tooltip: AppLocalizations.text(language, 'cart'),
+                          onPressed: () {
+                            setState(() => _selectedTab = 1);
+                          },
+                          icon: const Icon(Icons.shopping_cart_outlined),
+                        ),
+                      ),
+                    ),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: _notifications.isEmpty
+                        ? IconButton(
+                            tooltip: AppLocalizations.text(language, 'notifications'),
+                            onPressed: () {
+                              setState(() => _selectedTab = 3);
+                            },
+                            icon: const Icon(Icons.notifications_outlined),
+                          )
+                        : Badge.count(
+                            count: _notifications.length,
+                            child: IconButton.filledTonal(
+                              tooltip: AppLocalizations.text(language, 'notifications'),
+                              onPressed: () {
+                                setState(() => _selectedTab = 3);
+                              },
+                              icon: const Icon(Icons.notifications_active),
+                            ),
+                          ),
+                  ),
+                  IconButton(
+                    tooltip: AppLocalizations.text(language, 'selectLanguage'),
+                    onPressed: () => showLanguageSelectorDialog(context),
+                    icon: const Icon(Icons.language),
+                  ),
+                  IconButton(
+                    tooltip: AppLocalizations.text(language, 'logout'),
+                    onPressed: _signOut,
+                    icon: const Icon(Icons.logout),
+                  ),
+                ],
+              ),
+              body: pages[_selectedTab],
+              bottomNavigationBar: NavigationBar(
+                selectedIndex: _selectedTab == 3
+                    ? 2
+                    : (_selectedTab == 4 ? 3 : _selectedTab),
+                onDestinationSelected: (index) {
+                  final tabIndex = index == 3 ? 4 : index;
+                  setState(() => _selectedTab = tabIndex);
+                },
+                destinations: [
+                  NavigationDestination(
+                    icon: const Icon(Icons.inventory_2_outlined),
+                    selectedIcon: const Icon(Icons.inventory_2),
+                    label: AppLocalizations.text(language, 'catalog'),
+                  ),
+                  NavigationDestination(
+                    icon: const Icon(Icons.shopping_cart_outlined),
+                    selectedIcon: const Icon(Icons.shopping_cart),
+                    label: AppLocalizations.text(language, 'cart'),
+                  ),
+                  NavigationDestination(
+                    icon: const Icon(Icons.receipt_long_outlined),
+                    selectedIcon: const Icon(Icons.receipt_long),
+                    label: AppLocalizations.text(language, 'orders'),
+                  ),
+                  NavigationDestination(
+                    icon: const Icon(Icons.person_outline),
+                    selectedIcon: const Icon(Icons.person),
+                    label: AppLocalizations.text(language, 'account'),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class _CustomerCartPage extends StatelessWidget {
+  const _CustomerCartPage({
+    required this.language,
+    required this.cartLines,
+    required this.deliveryAddressController,
+    required this.paymentMethod,
+    required this.isSubmitting,
+    required this.onAdd,
+    required this.onRemove,
+    required this.onDetailsChanged,
+    required this.onPaymentChanged,
+    required this.onSubmit,
+  });
+
+  final AppLanguage language;
+  final List<_CartLine> cartLines;
+  final TextEditingController deliveryAddressController;
+  final String paymentMethod;
+  final bool isSubmitting;
+  final ValueChanged<_CatalogProduct> onAdd;
+  final ValueChanged<_CatalogProduct> onRemove;
+  final VoidCallback onDetailsChanged;
+  final ValueChanged<String?> onPaymentChanged;
+  final VoidCallback onSubmit;
+
+  int get totalQuantity =>
+      cartLines.fold(0, (total, line) => total + line.quantity);
+
+  double get totalAmount => cartLines.fold(
+        0,
+        (total, line) => total + (line.product.price * line.quantity),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    if (cartLines.isEmpty) {
+      return _EmptyState(
+        icon: Icons.shopping_cart_outlined,
+        title: AppLocalizations.text(language, 'cartEmptyTitle'),
+        message: AppLocalizations.text(language, 'cartEmptyMessage'),
+      );
+    }
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        _SummaryStrip(
+          title: '${cartLines.length} products',
+          subtitle:
+              '$totalQuantity total quantity | Rs. ${totalAmount.toStringAsFixed(0)} total',
+          icon: Icons.shopping_cart_checkout,
+        ),
+        const SizedBox(height: 14),
+        Text(
+          AppLocalizations.text(language, 'cartItems'),
+          style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 10),
+        for (final line in cartLines) ...[
+          _CartLineTile(
+            line: line,
+            onAdd: () => onAdd(line.product),
+            onRemove: () => onRemove(line.product),
+          ),
+          const SizedBox(height: 10),
+        ],
+        const SizedBox(height: 6),
+        _CartSummaryPanel(cartLines: cartLines),
+        const SizedBox(height: 18),
+        Text(
+          AppLocalizations.text(language, 'customerDetails'),
+          style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: deliveryAddressController,
+          onChanged: (_) => onDetailsChanged(),
+          textInputAction: TextInputAction.next,
+          minLines: 2,
+          maxLines: 4,
+          decoration: InputDecoration(
+            labelText: AppLocalizations.text(language, 'deliveryAddressLabel'),
+            prefixIcon: const Icon(Icons.location_on_outlined),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          AppLocalizations.text(language, 'paymentMethodLabel'),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+        ),
+        RadioListTile<String>(
+          title: Text(AppLocalizations.text(language, 'paymentMethodCOD')),
+          value: 'cod',
+          groupValue: paymentMethod,
+          onChanged: onPaymentChanged,
+        ),
+        RadioListTile<String>(
+          title: Text(AppLocalizations.text(language, 'paymentMethodOnline')),
+          value: 'online',
+          groupValue: paymentMethod,
+          onChanged: onPaymentChanged,
+        ),
+        if (paymentMethod == 'online') ...[
+          const SizedBox(height: 8),
+          Text(
+            AppLocalizations.text(language, 'paymentInfoOnline'),
+            style: const TextStyle(color: Color(0xFF475569)),
+          ),
+        ],
+        const SizedBox(height: 18),
+        FilledButton.icon(
+          onPressed: isSubmitting ? null : onSubmit,
+          icon: isSubmitting
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.send_outlined),
+          label: Text(AppLocalizations.text(language, 'placeOrder')),
+        ),
+      ],
+    );
+  }
+}
+
+class _CustomerAccountPage extends StatelessWidget {
+  const _CustomerAccountPage({required this.language, required this.onSignOut});
+
+  final AppLanguage language;
+  final VoidCallback onSignOut;
+
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        _SummaryStrip(
+          title: user?.displayName?.isNotEmpty == true
+              ? user!.displayName!
+              : AppLocalizations.text(language, 'customerAccount'),
+          subtitle: AppLocalizations.text(language, 'customerAccount'),
+          icon: Icons.person,
+        ),
+        const SizedBox(height: 14),
+        _InfoPanel(
+          title: AppLocalizations.text(language, 'wholesalerOrdersInfoTitle'),
+          lines: [
+            AppLocalizations.text(language, 'wholesalerOrdersInfoLine1'),
+            AppLocalizations.text(language, 'wholesalerOrdersInfoLine2'),
+            AppLocalizations.text(language, 'wholesalerOrdersInfoLine3'),
+          ],
+        ),
+        const SizedBox(height: 14),
+        ListTile(
+          leading: const Icon(Icons.language),
+          title: Text(AppLocalizations.text(language, 'selectLanguage')),
+          subtitle: Text(language.displayName),
+          onTap: () => showLanguageSelectorDialog(context),
+        ),
+        const SizedBox(height: 14),
+        FilledButton.tonalIcon(
+          onPressed: onSignOut,
+          icon: const Icon(Icons.logout),
+          label: Text(AppLocalizations.text(language, 'logout')),
+        ),
+      ],
+    );
+  }
+}
+
 class _CatalogPage extends StatelessWidget {
   const _CatalogPage({
     required this.categories,
@@ -1852,7 +2571,10 @@ class _OrdersPage extends StatelessWidget {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: FirebaseFirestore.instance
           .collection('orders')
-          .where('retailerUid', isEqualTo: user.uid)
+          .where(Filter.or(
+            Filter('retailerUid', isEqualTo: user.uid),
+            Filter('customerUid', isEqualTo: user.uid),
+          ))
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -2904,31 +3626,39 @@ class _ProductLargeCard extends StatelessWidget {
         children: [
           Stack(
             children: [
-              GestureDetector(
-                onTap: product.imageUrl.trim().isEmpty
-                    ? null
-                    : () => _openProductImage(context, product),
-                child: Hero(
-                  tag: 'product-card-image-${product.id}',
-                  child: AspectRatio(
-                    aspectRatio: 1.2,
-                    child: product.imageUrl.isEmpty
-                        ? Container(
-                            color: product.color.withValues(alpha: 0.1),
-                            child: Icon(
-                              product.icon,
-                              size: 80,
-                              color: product.color,
-                            ),
-                          )
-                        : _ImageFromSource(
-                            source: product.imageUrl,
-                            fallbackIcon: product.icon,
-                            fallbackColor: product.color,
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => _ProductDetailPage(
+                            product: product,
+                            quantity: quantity,
+                            onAdd: onAdd,
+                            onRemove: onRemove,
                           ),
+                        ),
+                      );
+                    },
+                    child: Hero(
+                      tag: 'product-card-image-${product.id}',
+                      child: AspectRatio(
+                        aspectRatio: 1.2,
+                        child: product.imageUrl.isEmpty
+                            ? Container(
+                                color: product.color.withValues(alpha: 0.1),
+                                child: Icon(
+                                  product.icon,
+                                  size: 80,
+                                  color: product.color,
+                                ),
+                              )
+                            : _ImageFromSource(
+                                source: product.imageUrl,
+                                fallbackIcon: product.icon,
+                                fallbackColor: product.color,
+                              ),
+                      ),
+                    ),
                   ),
-                ),
-              ),
               if (product.imageUrl.trim().isNotEmpty)
                 Positioned(
                   bottom: 16,
@@ -4071,7 +4801,9 @@ class _OrderTile extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  data['shopName']?.toString() ?? 'Order',
+                  data['shopName']?.toString().isNotEmpty == true
+                      ? data['shopName'].toString()
+                      : data['customerName']?.toString() ?? 'Order',
                   style: const TextStyle(fontWeight: FontWeight.w900),
                 ),
               ),
@@ -4101,10 +4833,17 @@ class _OrderTile extends StatelessWidget {
           const SizedBox(height: 6),
           if (showRetailerDetails) ...[
             Text(
-              'User name: ${data['retailerName'] ?? '-'}',
+              'User name: ${data['retailerName'] ?? data['customerName'] ?? '-'}',
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 3),
+            if (data['deliveryAddress'] != null) ...[
+              Text(
+                'Address: ${data['deliveryAddress']}',
+                style: const TextStyle(color: Color(0xFF64748B)),
+              ),
+              const SizedBox(height: 3),
+            ],
             Text(
               'Phone: ${data['phone'] ?? '-'}',
               style: const TextStyle(color: Color(0xFF64748B)),
@@ -4284,6 +5023,9 @@ void _showOrderDetails(
               Text(
                 'Status: ${_statusLabel(data['status']?.toString() ?? 'new')}',
               ),
+              if (data['customerName'] != null) Text('Customer: ${data['customerName']}'),
+              if (data['deliveryAddress'] != null) Text('Address: ${data['deliveryAddress']}'),
+              if (data['paymentMethod'] != null) Text('Payment: ${data['paymentMethod']}'),
               Text('Phone: ${data['phone'] ?? '-'}'),
               const SizedBox(height: 14),
               for (final item in items)
@@ -4353,7 +5095,8 @@ Future<void> _shareOrderPdf(String orderId, Map<String, dynamic> data) async {
             pw.SizedBox(height: 6),
             pw.Text('Wholesale Order'),
             pw.Text('Order ID: $orderId'),
-            pw.Text('Shop: ${data['shopName'] ?? '-'}'),
+            pw.Text('Shop/Name: ${data['shopName'] ?? data['customerName'] ?? '-'}'),
+            if (data['deliveryAddress'] != null) pw.Text('Address: ${data['deliveryAddress']}'),
             pw.Text('Phone: ${data['phone'] ?? '-'}'),
             pw.Text(
               'Status: ${_statusLabel(data['status']?.toString() ?? 'new')}',
@@ -5050,11 +5793,18 @@ Color _colorForCategory(String category) {
   return const Color(0xFF2563EB);
 }
 
-const List<String> _orderStatuses = ['new', 'confirmed', 'packed', 'delivered'];
+const List<String> _orderStatuses = [
+  'new',
+  'pending',
+  'confirmed',
+  'packed',
+  'delivered',
+];
 
 const List<String> _adminStatusFilters = [
   'all',
   'new',
+  'pending',
   'confirmed',
   'packed',
   'delivered',
@@ -5371,19 +6121,32 @@ class _AdminUsersPage extends StatelessWidget {
                             style: TextStyle(fontSize: 12),
                           ),
                         ),
-                      if (role == 'pending')
+                      if (role == 'pending') ...[
                         TextButton.icon(
                           onPressed: () =>
                               _updateUserRole(context, doc.id, 'retailer'),
                           icon: const Icon(
-                            Icons.check_circle_outline,
+                            Icons.storefront,
                             size: 18,
                           ),
                           label: const Text(
-                            'Approve',
+                            'Approve Retailer',
                             style: TextStyle(fontSize: 12),
                           ),
                         ),
+                        TextButton.icon(
+                          onPressed: () =>
+                              _updateUserRole(context, doc.id, 'customer'),
+                          icon: const Icon(
+                            Icons.shopping_bag_outlined,
+                            size: 18,
+                          ),
+                          label: const Text(
+                            'Approve Customer',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                        ),
+                      ],
                       if (role == 'retailer')
                         TextButton.icon(
                           onPressed: () =>
@@ -5432,6 +6195,8 @@ String _statusLabel(String status) {
       return 'All';
     case 'new':
       return 'New';
+    case 'pending':
+      return 'Pending';
     case 'confirmed':
       return 'Confirmed';
     case 'packed':
