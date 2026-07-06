@@ -36,11 +36,16 @@ service firebase.storage {
       allow delete: if isAdmin();
     }
 
-    // Retailer and general uploads
+    // User-owned uploads, if Firebase Storage is used later.
+    match /user_uploads/{userId}/{allPaths=**} {
+      allow read: if signedIn();
+      allow write: if request.auth.uid == userId && isValidImageUpload();
+      allow delete: if request.auth.uid == userId || isAdmin();
+    }
+
     match /{allPaths=**} {
       allow read: if signedIn();
-      allow write: if signedIn() && isValidImageUpload();
-      allow delete: if signedIn();
+      allow write, delete: if false;
     }
   }
 }
