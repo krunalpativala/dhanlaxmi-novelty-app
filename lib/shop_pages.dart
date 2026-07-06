@@ -384,20 +384,6 @@ class _ShopHomePageState extends State<ShopHomePage> {
                   ),
                 ),
                 actions: [
-                  ValueListenableBuilder<bool>(
-                    valueListenable: _showPriceNotifier,
-                    builder: (context, show, child) {
-                      return IconButton(
-                        tooltip: show
-                            ? AppLocalizations.text(language, 'hidePrices')
-                            : AppLocalizations.text(language, 'showPrices'),
-                        icon: Icon(
-                          show ? Icons.visibility : Icons.visibility_off,
-                        ),
-                        onPressed: () => _handlePriceVisibilityToggle(context),
-                      );
-                    },
-                  ),
                   if (_totalQuantity > 0)
                     Padding(
                       padding: const EdgeInsets.only(right: 8),

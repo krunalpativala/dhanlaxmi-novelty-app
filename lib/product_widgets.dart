@@ -164,7 +164,8 @@ class _ProductLargeCard extends StatelessWidget {
                 child: ValueListenableBuilder<bool>(
                   valueListenable: _showPriceNotifier,
                   builder: (context, show, child) {
-                    if (!show) return const SizedBox.shrink();
+                    // Hide price for retailers (isCustomerMode is false for them)
+                    if (!show || !isCustomerMode) return const SizedBox.shrink();
                     return Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
@@ -248,7 +249,7 @@ class _ProductLargeCard extends StatelessWidget {
                     ValueListenableBuilder<bool>(
                       valueListenable: _showPriceNotifier,
                       builder: (context, show, child) {
-                        if (!show) {
+                        if (!show || !isCustomerMode) {
                           return const Expanded(
                             child: Text(
                               'Price Hidden',
@@ -514,7 +515,7 @@ class _ProductDetailPageState extends State<_ProductDetailPage> {
                       ValueListenableBuilder<bool>(
                         valueListenable: _showPriceNotifier,
                         builder: (context, show, child) {
-                          if (!show) {
+                          if (!show || !widget.isCustomerMode) {
                             return const Expanded(
                               child: Text(
                                 'Price Hidden',
@@ -583,7 +584,7 @@ class _ProductDetailPageState extends State<_ProductDetailPage> {
                     ValueListenableBuilder<bool>(
                       valueListenable: _showPriceNotifier,
                       builder: (context, show, child) {
-                        if (!show) return const SizedBox.shrink();
+                        if (!show || !widget.isCustomerMode) return const SizedBox.shrink();
                         return Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(16),
@@ -1027,11 +1028,13 @@ class _CartLineTile extends StatelessWidget {
     required this.line,
     required this.onAdd,
     required this.onRemove,
+    this.isCustomerMode = false,
   });
 
   final _CartLine line;
   final VoidCallback onAdd;
   final VoidCallback onRemove;
+  final bool isCustomerMode;
 
   @override
   Widget build(BuildContext context) {
@@ -1063,12 +1066,26 @@ class _CartLineTile extends StatelessWidget {
                   style: const TextStyle(color: Color(0xFF64748B)),
                 ),
                 const SizedBox(height: 6),
-                Text(
-                  'Rs. ${line.product.price.toStringAsFixed(0)} x ${line.quantity} = Rs. ${lineTotal.toStringAsFixed(0)}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF0F766E),
-                  ),
+                ValueListenableBuilder<bool>(
+                  valueListenable: _showPriceNotifier,
+                  builder: (context, show, child) {
+                    if (!show || !isCustomerMode) {
+                      return const Text(
+                        'Price Hidden',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF64748B),
+                        ),
+                      );
+                    }
+                    return Text(
+                      'Rs. ${line.product.price.toStringAsFixed(0)} x ${line.quantity} = Rs. ${lineTotal.toStringAsFixed(0)}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0F766E),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
@@ -1086,9 +1103,13 @@ class _CartLineTile extends StatelessWidget {
 }
 
 class _CartSummaryPanel extends StatelessWidget {
-  const _CartSummaryPanel({required this.cartLines});
+  const _CartSummaryPanel({
+    required this.cartLines,
+    this.isCustomerMode = false,
+  });
 
   final List<_CartLine> cartLines;
+  final bool isCustomerMode;
 
   int get totalQuantity =>
       cartLines.fold(0, (total, line) => total + line.quantity);
@@ -1116,7 +1137,7 @@ class _CartSummaryPanel extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           for (final line in cartLines) ...[
-            _CartSummaryRow(line: line),
+            _CartSummaryRow(line: line, isCustomerMode: isCustomerMode),
             const Divider(height: 16),
           ],
           Row(
@@ -1130,13 +1151,28 @@ class _CartSummaryPanel extends StatelessWidget {
                   ),
                 ),
               ),
-              Text(
-                'Rs. ${totalAmount.toStringAsFixed(0)}',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF0F766E),
-                ),
+              ValueListenableBuilder<bool>(
+                valueListenable: _showPriceNotifier,
+                builder: (context, show, child) {
+                  if (!show || !isCustomerMode) {
+                    return const Text(
+                      'Price Hidden',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF64748B),
+                      ),
+                    );
+                  }
+                  return Text(
+                    'Rs. ${totalAmount.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF0F766E),
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -1147,9 +1183,10 @@ class _CartSummaryPanel extends StatelessWidget {
 }
 
 class _CartSummaryRow extends StatelessWidget {
-  const _CartSummaryRow({required this.line});
+  const _CartSummaryRow({required this.line, this.isCustomerMode = false});
 
   final _CartLine line;
+  final bool isCustomerMode;
 
   @override
   Widget build(BuildContext context) {
@@ -1176,17 +1213,42 @@ class _CartSummaryRow extends StatelessWidget {
                 style: const TextStyle(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 2),
-              Text(
-                '${line.quantity} ${line.product.unit} x Rs. ${line.product.price.toStringAsFixed(0)}',
-                style: const TextStyle(color: Color(0xFF64748B), fontSize: 12),
+              ValueListenableBuilder<bool>(
+                valueListenable: _showPriceNotifier,
+                builder: (context, show, child) {
+                  if (!show || !isCustomerMode) {
+                    return Text(
+                      'Quantity: ${line.quantity} ${line.product.unit}',
+                      style: const TextStyle(
+                        color: Color(0xFF64748B),
+                        fontSize: 12,
+                      ),
+                    );
+                  }
+                  return Text(
+                    '${line.quantity} ${line.product.unit} x Rs. ${line.product.price.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      color: Color(0xFF64748B),
+                      fontSize: 12,
+                    ),
+                  );
+                },
               ),
             ],
           ),
         ),
         const SizedBox(width: 8),
-        Text(
-          'Rs. ${lineTotal.toStringAsFixed(0)}',
-          style: const TextStyle(fontWeight: FontWeight.w900),
+        ValueListenableBuilder<bool>(
+          valueListenable: _showPriceNotifier,
+          builder: (context, show, child) {
+            if (!show || !isCustomerMode) {
+              return const SizedBox.shrink();
+            }
+            return Text(
+              'Rs. ${lineTotal.toStringAsFixed(0)}',
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            );
+          },
         ),
       ],
     );

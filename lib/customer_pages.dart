@@ -563,11 +563,12 @@ class _CustomerCartPage extends StatelessWidget {
             line: line,
             onAdd: () => onAdd(line.product),
             onRemove: () => onRemove(line.product),
+            isCustomerMode: true,
           ),
           const SizedBox(height: 10),
         ],
         const SizedBox(height: 6),
-        _CartSummaryPanel(cartLines: cartLines),
+        _CartSummaryPanel(cartLines: cartLines, isCustomerMode: true),
         const SizedBox(height: 18),
         Text(
           AppLocalizations.text(language, 'customerDetails'),

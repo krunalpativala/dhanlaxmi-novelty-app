@@ -37,18 +37,22 @@ class _OrderTile extends StatelessWidget {
     required this.data,
     this.showRetailerDetails = false,
     this.onStatusChanged,
+    this.isCustomerMode = false,
   });
 
   final String orderId;
   final Map<String, dynamic> data;
   final bool showRetailerDetails;
   final ValueChanged<String>? onStatusChanged;
+  final bool isCustomerMode;
 
   @override
   Widget build(BuildContext context) {
     final items = (data['items'] as List<dynamic>? ?? []);
     final status = data['status']?.toString() ?? 'new';
     final totalAmount = _orderTotalAmount(data);
+    final bool isAdmin = onStatusChanged != null;
+    final bool showPrice = isAdmin || isCustomerMode;
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -140,9 +144,24 @@ class _OrderTile extends StatelessWidget {
                       style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                   ),
-                  Text(
-                    'Rs. ${_itemLineTotal(item).toStringAsFixed(0)}',
-                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ValueListenableBuilder<bool>(
+                    valueListenable: _showPriceNotifier,
+                    builder: (context, show, child) {
+                      if (!show || !showPrice) {
+                        return const Text(
+                          'Price Hidden',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF64748B),
+                            fontSize: 12,
+                          ),
+                        );
+                      }
+                      return Text(
+                        'Rs. ${_itemLineTotal(item).toStringAsFixed(0)}',
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -168,12 +187,26 @@ class _OrderTile extends StatelessWidget {
                   style: const TextStyle(color: Color(0xFF64748B)),
                 ),
               ),
-              Text(
-                'Total: Rs. ${totalAmount.toStringAsFixed(0)}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF0F766E),
-                ),
+              ValueListenableBuilder<bool>(
+                valueListenable: _showPriceNotifier,
+                builder: (context, show, child) {
+                  if (!show || !showPrice) {
+                    return const Text(
+                      'Price Hidden',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF64748B),
+                      ),
+                    );
+                  }
+                  return Text(
+                    'Total: Rs. ${totalAmount.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF0F766E),
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -183,17 +216,17 @@ class _OrderTile extends StatelessWidget {
             runSpacing: 8,
             children: [
               OutlinedButton.icon(
-                onPressed: () => _showOrderDetails(context, orderId, data),
+                onPressed: () => _showOrderDetails(context, orderId, data, showPrice),
                 icon: const Icon(Icons.open_in_new),
                 label: const Text('Details'),
               ),
               OutlinedButton.icon(
-                onPressed: () => _shareOrderPdf(orderId, data),
+                onPressed: () => _shareOrderPdf(orderId, data, showPrice),
                 icon: const Icon(Icons.picture_as_pdf_outlined),
                 label: const Text('PDF'),
               ),
               OutlinedButton.icon(
-                onPressed: () => _sendOrderOnWhatsApp(data),
+                onPressed: () => _sendOrderOnWhatsApp(data, showPrice),
                 icon: const Icon(Icons.chat_outlined),
                 label: const Text('WhatsApp'),
               ),
@@ -264,6 +297,7 @@ void _showOrderDetails(
   BuildContext context,
   String orderId,
   Map<String, dynamic> data,
+  bool showPrice,
 ) {
   final items = data['items'] as List<dynamic>? ?? [];
   final totalAmount = _orderTotalAmount(data);
@@ -307,11 +341,26 @@ void _showOrderDetails(
                   leading: item is Map ? _OrderItemThumb(item: item) : null,
                   title: Text(item['name']?.toString() ?? 'Item'),
                   subtitle: Text(
-                    '${item['category'] ?? ''} | ${item['quantity']} ${item['unit'] ?? 'pcs'} x Rs. ${((item['price'] as num?) ?? 0).toStringAsFixed(0)}',
+                    '${item['category'] ?? ''} | ${item['quantity']} ${item['unit'] ?? 'pcs'} ${showPrice ? 'x Rs. ${((item['price'] as num?) ?? 0).toStringAsFixed(0)}' : ''}',
                   ),
-                  trailing: Text(
-                    'Rs. ${_itemLineTotal(item).toStringAsFixed(0)}',
-                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  trailing: ValueListenableBuilder<bool>(
+                    valueListenable: _showPriceNotifier,
+                    builder: (context, show, child) {
+                      if (!show || !showPrice) {
+                        return const Text(
+                          'Price Hidden',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF64748B),
+                            fontSize: 12,
+                          ),
+                        );
+                      }
+                      return Text(
+                        'Rs. ${_itemLineTotal(item).toStringAsFixed(0)}',
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      );
+                    },
                   ),
                 ),
               const Divider(height: 24),
@@ -326,19 +375,34 @@ void _showOrderDetails(
                       ),
                     ),
                   ),
-                  Text(
-                    'Rs. ${totalAmount.toStringAsFixed(0)}',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF0F766E),
-                    ),
+                  ValueListenableBuilder<bool>(
+                    valueListenable: _showPriceNotifier,
+                    builder: (context, show, child) {
+                      if (!show || !showPrice) {
+                        return const Text(
+                          'Price Hidden',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF64748B),
+                          ),
+                        );
+                      }
+                      return Text(
+                        'Rs. ${totalAmount.toStringAsFixed(0)}',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF0F766E),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
               const SizedBox(height: 12),
               FilledButton.icon(
-                onPressed: () => _shareOrderPdf(orderId, data),
+                onPressed: () => _shareOrderPdf(orderId, data, showPrice),
                 icon: const Icon(Icons.picture_as_pdf_outlined),
                 label: const Text('Share / print PDF'),
               ),
@@ -348,4 +412,118 @@ void _showOrderDetails(
       );
     },
   );
+}
+
+Future<void> _shareOrderPdf(
+  String orderId,
+  Map<String, dynamic> data,
+  bool showPrice,
+) async {
+  final document = pw.Document();
+  final items = data['items'] as List<dynamic>? ?? [];
+  final totalAmount = _orderTotalAmount(data);
+  final bool showPriceInPdf = _showPriceNotifier.value && showPrice;
+
+  document.addPage(
+    pw.Page(
+      build: (context) {
+        return pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text(
+              'Dhanlaxmi Novelty',
+              style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold),
+            ),
+            pw.SizedBox(height: 6),
+            pw.Text('Wholesale Order'),
+            pw.Text('Order ID: $orderId'),
+            pw.Text(
+              'Shop/Name: ${data['shopName'] ?? data['customerName'] ?? '-'}',
+            ),
+            if (data['deliveryAddress'] != null)
+              pw.Text('Address: ${data['deliveryAddress']}'),
+            pw.Text('Phone: ${data['phone'] ?? '-'}'),
+            pw.Text(
+              'Status: ${_statusLabel(data['status']?.toString() ?? 'new')}',
+            ),
+            pw.SizedBox(height: 16),
+            pw.TableHelper.fromTextArray(
+              headers: [
+                'Item',
+                'Category',
+                'Qty',
+                'Unit',
+                if (showPriceInPdf) 'Price',
+                if (showPriceInPdf) 'Total',
+              ],
+              data: items.map((item) {
+                return [
+                  item['name']?.toString() ?? '',
+                  item['category']?.toString() ?? '',
+                  item['quantity']?.toString() ?? '',
+                  item['unit']?.toString() ?? '',
+                  if (showPriceInPdf)
+                    'Rs. ${((item['price'] as num?) ?? 0).toStringAsFixed(0)}',
+                  if (showPriceInPdf)
+                    'Rs. ${_itemLineTotal(item).toStringAsFixed(0)}',
+                ];
+              }).toList(),
+            ),
+            if (showPriceInPdf) pw.SizedBox(height: 14),
+            if (showPriceInPdf)
+              pw.Align(
+                alignment: pw.Alignment.centerRight,
+                child: pw.Text(
+                  'Grand Total: Rs. ${totalAmount.toStringAsFixed(0)}',
+                  style: pw.TextStyle(
+                    fontSize: 16,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+              ),
+            if ((data['note']?.toString() ?? '').isNotEmpty) ...[
+              pw.SizedBox(height: 14),
+              pw.Text('Note: ${data['note']}'),
+            ],
+          ],
+        );
+      },
+    ),
+  );
+
+  await Printing.sharePdf(
+    bytes: await document.save(),
+    filename: 'dhanlaxmi-order-$orderId.pdf',
+  );
+}
+
+Future<void> _sendOrderOnWhatsApp(
+  Map<String, dynamic> data,
+  bool showPrice,
+) async {
+  final phone =
+      data['phone']?.toString().replaceAll(RegExp(r'[^0-9]'), '') ?? '';
+  final items = data['items'] as List<dynamic>? ?? [];
+  final totalAmount = _orderTotalAmount(data);
+  final bool showPriceInMsg = _showPriceNotifier.value && showPrice;
+
+  final lines = [
+    'Dhanlaxmi Novelty Order',
+    'Shop: ${data['shopName'] ?? '-'}',
+    'Status: ${_statusLabel(data['status']?.toString() ?? 'new')}',
+    '',
+    for (final item in items)
+      '${item['name']} x ${item['quantity']} ${item['unit'] ?? ''} ${showPriceInMsg ? "= Rs. ${_itemLineTotal(item).toStringAsFixed(0)}" : ""}',
+    '',
+    if (showPriceInMsg) 'Total: Rs. ${totalAmount.toStringAsFixed(0)}',
+  ];
+  final message = Uri.encodeComponent(lines.join('\n'));
+  final uri = Uri.parse(
+    phone.isEmpty
+        ? 'https://wa.me/?text=$message'
+        : 'https://wa.me/91$phone?text=$message',
+  );
+
+  const channel = MethodChannel('d1/whatsapp');
+  await channel.invokeMethod<void>('openWhatsApp', {'url': uri.toString()});
 }

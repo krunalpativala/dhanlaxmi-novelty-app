@@ -195,6 +195,7 @@ class _OrdersPage extends StatelessWidget {
             return _OrderTile(
               orderId: docs[index].id,
               data: docs[index].data(),
+              isCustomerMode: isCustomer,
             );
           },
         );
