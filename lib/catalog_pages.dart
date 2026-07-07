@@ -224,30 +224,18 @@ class _CategoryProductsPage extends StatefulWidget {
 class _CategoryProductsPageState extends State<_CategoryProductsPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  late RangeValues _priceRange;
-  late double _sliderMax;
 
   @override
   void initState() {
     super.initState();
-    double maxP = 0;
-    for (final p in widget.category.products) {
-      if (p.price > maxP) maxP = p.price;
-    }
-    _sliderMax = maxP < 1000 ? 1000.0 : maxP;
-    _priceRange = RangeValues(0.0, _sliderMax);
   }
 
   @override
   Widget build(BuildContext context) {
     final filteredProducts = widget.category.products.where((p) {
       final query = _searchQuery.toLowerCase();
-      final matchesText =
-          p.name.toLowerCase().contains(query) ||
+      return p.name.toLowerCase().contains(query) ||
           p.description.toLowerCase().contains(query);
-      final matchesPrice =
-          p.price >= _priceRange.start && p.price <= _priceRange.end;
-      return matchesText && matchesPrice;
     }).toList();
 
     final totalQuantity = widget.cart.values.fold(
@@ -300,34 +288,6 @@ class _CategoryProductsPageState extends State<_CategoryProductsPage> {
                         : null,
                   ),
                 ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    const Expanded(
-                      child: Text(
-                        'Price range',
-                        style: TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                    Text(
-                      '₹${_priceRange.start.toInt()} - ₹${_priceRange.end.toInt()}',
-                      style: const TextStyle(color: Color(0xFF64748B)),
-                    ),
-                  ],
-                ),
-                RangeSlider(
-                  values: _priceRange,
-                  min: 0.0,
-                  max: _sliderMax,
-                  divisions: _sliderMax <= 1000
-                      ? (_sliderMax / 50).round().clamp(1, 20)
-                      : 20,
-                  labels: RangeLabels(
-                    '₹${_priceRange.start.toInt()}',
-                    '₹${_priceRange.end.toInt()}',
-                  ),
-                  onChanged: (r) => setState(() => _priceRange = r),
-                ),
               ],
             ),
           ),
@@ -336,7 +296,7 @@ class _CategoryProductsPageState extends State<_CategoryProductsPage> {
                 ? const _EmptyState(
                     icon: Icons.search_off_outlined,
                     title: 'No products found',
-                    message: 'Try changing the search or price range.',
+                    message: 'Try changing the search.',
                   )
                 : ListView.separated(
                     padding: const EdgeInsets.all(16),

@@ -55,11 +55,12 @@ class _WholesaleBanner extends StatelessWidget {
             style: const TextStyle(color: Color(0xFFD1FAE5), height: 1.35),
           ),
           const SizedBox(height: 16),
-          FilledButton.icon(
-            onPressed: onOpenCart,
-            icon: const Icon(Icons.shopping_cart_outlined),
-            label: const Text('Review cart'),
-          ),
+          if (isCustomerMode)
+            FilledButton.icon(
+              onPressed: onOpenCart,
+              icon: const Icon(Icons.shopping_cart_outlined),
+              label: const Text('Review cart'),
+            ),
         ],
       ),
     );
@@ -193,29 +194,6 @@ class _ProductLargeCard extends StatelessWidget {
                   },
                 ),
               ),
-              if (!isCustomerMode && product.minimumOrderQuantity > 1)
-                Positioned(
-                  bottom: 16,
-                  left: 16,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.7),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      'MOQ: ${product.minimumOrderQuantity} ${product.unit}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
             ],
           ),
           Padding(
@@ -242,78 +220,7 @@ class _ProductLargeCard extends StatelessWidget {
                     fontSize: 14,
                   ),
                 ),
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    ValueListenableBuilder<bool>(
-                      valueListenable: _showPriceNotifier,
-                      builder: (context, show, child) {
-                        if (!show || !isCustomerMode) {
-                          return const Expanded(
-                            child: Text(
-                              'Price Hidden',
-                              style: TextStyle(
-                                color: Color(0xFF64748B),
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          );
-                        }
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Total Price',
-                              style: TextStyle(
-                                color: Color(0xFF64748B),
-                                fontSize: 12,
-                              ),
-                            ),
-                            Text(
-                              '₹${(product.price * (quantity > 0 ? quantity : 1)).toStringAsFixed(0)}',
-                              style: TextStyle(
-                                color: theme.colorScheme.primary,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Row(
-                        children: [
-                          IconButton(
-                            onPressed: quantity > 0 ? onRemove : null,
-                            icon: const Icon(Icons.remove_circle_outline),
-                            color: theme.colorScheme.primary,
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Text(
-                              '$quantity',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: onAdd,
-                            icon: const Icon(Icons.add_circle),
-                            color: theme.colorScheme.primary,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                const SizedBox(height: 12),
               ],
             ),
           ),
@@ -475,154 +382,33 @@ class _ProductDetailPageState extends State<_ProductDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              product.name,
-                              style: const TextStyle(
-                                fontSize: 26,
-                                fontWeight: FontWeight.w900,
-                                height: 1.2,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: product.color.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                product.category,
-                                style: TextStyle(
-                                  color: product.color,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      ValueListenableBuilder<bool>(
-                        valueListenable: _showPriceNotifier,
-                        builder: (context, show, child) {
-                          if (!show || !widget.isCustomerMode) {
-                            return const Expanded(
-                              child: Text(
-                                'Price Hidden',
-                                textAlign: TextAlign.right,
-                                style: TextStyle(
-                                  color: Color(0xFF64748B),
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            );
-                          }
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                '₹${product.price.toStringAsFixed(0)}',
-                                style: TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.w900,
-                                  color: theme.colorScheme.primary,
-                                ),
-                              ),
-                              Text(
-                                'per ${product.unit}',
-                                style: const TextStyle(
-                                  color: Color(0xFF64748B),
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 24),
-                  const Divider(),
-                  const SizedBox(height: 16),
-
-                  // Order Info
-                  Row(
-                    children: [
-                      if (!widget.isCustomerMode)
-                        _infoCard(
-                          icon: Icons.shopping_bag_outlined,
-                          label: 'Min Order',
-                          value:
-                              '${product.minimumOrderQuantity} ${product.unit}',
-                        ),
-                      if (!widget.isCustomerMode) const SizedBox(width: 12),
-                      _infoCard(
-                        icon: Icons.shopping_cart_outlined,
-                        label: 'In Cart',
-                        value: _localQuantity > 0
-                            ? '$_localQuantity ${product.unit}'
-                            : 'Empty',
-                        highlight: _localQuantity > 0,
-                        highlightColor: theme.colorScheme.primary,
-                      ),
-                    ],
-                  ),
-
-                  if (_localQuantity > 0) ...[
-                    const SizedBox(height: 16),
-                    ValueListenableBuilder<bool>(
-                      valueListenable: _showPriceNotifier,
-                      builder: (context, show, child) {
-                        if (!show || !widget.isCustomerMode) return const SizedBox.shrink();
-                        return Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primary.withValues(
-                              alpha: 0.05,
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: theme.colorScheme.primary.withValues(
-                                alpha: 0.1,
-                              ),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'Total Amount',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                '₹${totalPrice.toStringAsFixed(0)}',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w900,
-                                  color: theme.colorScheme.primary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
+                  Text(
+                    product.name,
+                    style: const TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
+                      height: 1.2,
                     ),
-                  ],
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: product.color.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      product.category,
+                      style: TextStyle(
+                        color: product.color,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
 
                   const SizedBox(height: 24),
                   const Text(
@@ -640,77 +426,8 @@ class _ProductDetailPageState extends State<_ProductDetailPage> {
                       height: 1.5,
                     ),
                   ),
-                  const SizedBox(height: 120), // Space for bottom bar
+                  const SizedBox(height: 24),
                 ],
-              ),
-            ),
-          ],
-        ),
-      ),
-      bottomSheet: Container(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 15,
-              offset: const Offset(0, -5),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  IconButton(
-                    onPressed: _localQuantity > 0 ? _decrement : null,
-                    icon: const Icon(Icons.remove),
-                    color: theme.colorScheme.primary,
-                  ),
-                  SizedBox(
-                    width: 40,
-                    child: Text(
-                      '$_localQuantity',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: _increment,
-                    icon: const Icon(Icons.add),
-                    color: theme.colorScheme.primary,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: FilledButton.icon(
-                onPressed: _increment,
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: theme.colorScheme.primary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                icon: const Icon(Icons.add_shopping_cart),
-                label: Text(
-                  _localQuantity > 0 ? 'Add More' : 'Add to Cart',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
               ),
             ),
           ],

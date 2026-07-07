@@ -7,7 +7,36 @@ class ShopHomePage extends StatefulWidget {
   State<ShopHomePage> createState() => _ShopHomePageState();
 }
 
+class _CartDisabledPage extends StatelessWidget {
+  const _CartDisabledPage({required this.language});
+
+  final String language;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.block, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
+            Text(
+              AppLocalizations.text(language, 'cartDisabled') ??
+                  'Cart is disabled for this app mode.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 16),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 class _ShopHomePageState extends State<ShopHomePage> {
+  // Cart is intentionally disabled on retailer side (UI-only removal).
+  // Keep the structure present so shared widgets compile, but treat it as empty.
   final Map<String, _CartLine> _cart = {};
   final _shopNameController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -17,20 +46,17 @@ class _ShopHomePageState extends State<ShopHomePage> {
   bool _isSubmitting = false;
   bool _isCartLoading = true;
 
-  int get _totalQuantity =>
-      _cart.values.fold(0, (total, line) => total + line.quantity);
+  // Retailer side: expose zero totals so cart UI stays hidden.
+  int get _totalQuantity => 0;
 
-  int get _totalProducts => _cart.length;
+  int get _totalProducts => 0;
 
-  double get _cartTotalAmount => _cart.values.fold(
-    0,
-    (total, line) => total + (line.product.price * line.quantity),
-  );
+  double get _cartTotalAmount => 0.0;
 
   @override
   void initState() {
     super.initState();
-    _loadCartFromFirestore();
+    // Do not load cart for retailer side.
     _notifications.addAll(_NotificationService.notificationsNotifier.value);
     _NotificationService.notificationsNotifier.addListener(
       _onNotificationsChanged,
@@ -63,248 +89,37 @@ class _ShopHomePageState extends State<ShopHomePage> {
       return null;
     }
 
-    return FirebaseFirestore.instance.collection('carts').doc(user.uid);
+    // Cart persistence disabled for retailer side.
+    return null;
   }
 
   Future<void> _loadCartFromFirestore() async {
-    final cartDocument = _cartDocument;
-    if (cartDocument == null) {
-      setState(() => _isCartLoading = false);
-      return;
-    }
-
-    try {
-      final snapshot = await cartDocument.get();
-      final data = snapshot.data();
-      final items = data?['items'] as List<dynamic>? ?? [];
-      final loadedCart = <String, _CartLine>{};
-
-      for (final item in items) {
-        if (item is! Map) {
-          continue;
-        }
-
-        final productId = item['productId']?.toString();
-        final product =
-            _findProductById(productId) ?? _productFromCartItem(item);
-        final quantity = item['quantity'];
-
-        if (product != null && quantity is int && quantity > 0) {
-          loadedCart[product.id] = _CartLine(
-            product: product,
-            quantity: quantity,
-          );
-        }
-      }
-
-      if (mounted) {
-        setState(() {
-          _cart
-            ..clear()
-            ..addAll(loadedCart);
-          _shopNameController.text = data?['shopName']?.toString() ?? '';
-          _phoneController.text = data?['phone']?.toString() ?? '';
-          _noteController.text = data?['note']?.toString() ?? '';
-          _isCartLoading = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) {
-        setState(() => _isCartLoading = false);
-      }
-    }
+    // No-op for retailer side.
+    if (mounted) setState(() => _isCartLoading = false);
   }
 
   Future<void> _saveCartToFirestore() async {
-    final cartDocument = _cartDocument;
-    if (cartDocument == null) {
-      return;
-    }
-
-    if (_cart.isEmpty) {
-      try {
-        await cartDocument.delete().timeout(const Duration(seconds: 5));
-      } catch (_) {}
-      return;
-    }
-
-    try {
-      final cartData = {
-        'retailerUid': FirebaseAuth.instance.currentUser?.uid,
-        'retailerName': FirebaseAuth.instance.currentUser?.displayName ?? '',
-        'shopName': _shopNameController.text.trim(),
-        'phone': _phoneController.text.trim(),
-        'note': _noteController.text.trim(),
-        'totalProducts': _totalProducts,
-        'totalQuantity': _totalQuantity,
-        'items': _cart.values.map((line) => line.toFirestore()).toList(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      };
-
-      const maxCartDocBytes =
-          900 * 1024; // Keep a safe margin under Firestore's 1MB limit.
-      final cartPayloadBytes = utf8.encode(jsonEncode(cartData)).length;
-      if (cartPayloadBytes > maxCartDocBytes) {
-        debugPrint(
-          'Cart sync skipped: document payload $cartPayloadBytes bytes exceeds safe limit $maxCartDocBytes bytes.',
-        );
-        return;
-      }
-
-      await cartDocument.set(cartData).timeout(const Duration(seconds: 5));
-    } catch (e) {
-      debugPrint('Cart sync skip: $e');
-    }
+    // Cart persistence disabled for retailer side.
   }
 
   void _addProduct(_CatalogProduct product) {
-    setState(() {
-      final existing = _cart[product.id];
-      _cart[product.id] = _CartLine(
-        product: product,
-        quantity: existing == null
-            ? product.minimumOrderQuantity
-            : existing.quantity + 1,
-      );
-    });
-    _saveCartToFirestore();
+    // Cart disabled for retailer side: do nothing.
   }
 
   void _decreaseProduct(_CatalogProduct product) {
-    final existing = _cart[product.id];
-    if (existing == null) {
-      return;
-    }
-
-    setState(() {
-      if (existing.quantity <= product.minimumOrderQuantity) {
-        _cart.remove(product.id);
-      } else {
-        _cart[product.id] = _CartLine(
-          product: product,
-          quantity: existing.quantity - 1,
-        );
-      }
-    });
-    _saveCartToFirestore();
+    // Cart disabled for retailer side: do nothing.
   }
 
   Future<void> _submitOrder() async {
-    if (_cart.isEmpty || _isSubmitting) {
-      return;
-    }
-
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
+    // Cart/order submission disabled for retailer side.
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('તમારે પહેલા લોગ-ઈન કરવું પડશે.'),
-          backgroundColor: Colors.orange,
+        SnackBar(
+          content: Text(
+            AppLocalizations.text(languageNotifier.value, 'cartDisabled'),
+          ),
         ),
       );
-      setState(() => _selectedTab = 4); // Account tab પર મોકલી આપશે
-      return;
-    }
-
-    final shopName = _shopNameController.text.trim();
-    final phone = _phoneController.text.trim();
-
-    if (shopName.isEmpty || phone.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('દુકાનનું નામ અને મોબાઈલ નંબર લખવો જરૂરી છે.'),
-        ),
-      );
-      return;
-    }
-
-    setState(() => _isSubmitting = true);
-
-    try {
-      debugPrint('Starting order submission...');
-      final orderItems = _cart.values
-          .map(
-            (line) => {
-              'productId': line.product.id,
-              'name': line.product.name,
-              'category': line.product.category,
-              'unit': line.product.unit,
-              'price': line.product.price,
-              'minimumOrderQuantity': line.product.minimumOrderQuantity,
-              'lineTotal': line.product.price * line.quantity,
-              'imageUrl': line.product.imageUrl,
-              'quantity': line.quantity,
-            },
-          )
-          .toList();
-
-      final orderData = {
-        'retailerUid': user.uid,
-        'retailerName': user.displayName ?? '',
-        'shopName': shopName,
-        'phone': phone,
-        'note': _noteController.text.trim(),
-        'status': 'new',
-        'totalProducts': _totalProducts,
-        'totalQuantity': _totalQuantity,
-        'totalAmount': _cartTotalAmount,
-        'items': orderItems,
-        'createdAt': FieldValue.serverTimestamp(),
-      };
-
-      // Firestore માં ઓર્ડર એડ કરો
-      await FirebaseFirestore.instance
-          .collection('orders')
-          .add(orderData)
-          .timeout(const Duration(seconds: 15));
-
-      // કાર્ટ ડોક્યુમેન્ટ ડીલીટ કરો
-      if (_cartDocument != null) {
-        await _cartDocument!.delete().catchError((_) => null);
-      }
-
-      setState(() {
-        _cart.clear();
-        _selectedTab = 2; // Orders page
-        _noteController.clear();
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.text(languageNotifier.value, 'orderSuccess'),
-            ),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } on FirebaseException catch (error) {
-      debugPrint('Firebase Error: ${error.code}');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(_firestoreError(error)),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } catch (e) {
-      debugPrint('Error: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '${AppLocalizations.text(languageNotifier.value, 'error')}$e',
-            ),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isSubmitting = false);
-      }
     }
   }
 
@@ -358,18 +173,8 @@ class _ShopHomePageState extends State<ShopHomePage> {
                   setState(() => _selectedTab = 1);
                 },
               ),
-              _CartPage(
-                language: language,
-                cartLines: _cart.values.toList(),
-                shopNameController: _shopNameController,
-                phoneController: _phoneController,
-                noteController: _noteController,
-                isSubmitting: _isSubmitting,
-                onAdd: _addProduct,
-                onRemove: _decreaseProduct,
-                onDetailsChanged: _saveCartToFirestore,
-                onSubmit: _submitOrder,
-              ),
+              // Cart UI is disabled on retailer side; show informational page instead.
+              _CartDisabledPage(language: language),
               _OrdersPage(language: language),
               _NotificationsPage(notifications: _notifications),
               _AccountPage(language: language, onSignOut: _signOut),
