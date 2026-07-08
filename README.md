@@ -2,6 +2,8 @@
 
 A Flutter-based wholesale ordering application built for Dhanlaxmi Novelty. The app allows retailers to browse products, add items to cart, and place orders efficiently.
 
+Live demo: https://dhanlaxmi-app-4a7ea.web.app
+
 ## Features
 
 * User Authentication (Firebase Auth)
