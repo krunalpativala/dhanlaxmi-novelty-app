@@ -10,7 +10,7 @@ class ShopHomePage extends StatefulWidget {
 class _CartDisabledPage extends StatelessWidget {
   const _CartDisabledPage({required this.language});
 
-  final String language;
+  final AppLanguage language;
 
   @override
   Widget build(BuildContext context) {
